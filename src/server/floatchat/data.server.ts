@@ -1,0 +1,94 @@
+// Public read endpoints for the map/dashboard. Uses the publishable key (RLS: public read on Argo tables).
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+function publicClient() {
+  const url = process.env["SUPABASE_URL"];
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) throw new Error("Backend is not configured");
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    global: {
+      fetch: (input, init) => {
+        const headers = new Headers(init?.headers);
+        if (headers.get("Authorization") === `Bearer ${key}`) headers.delete("Authorization");
+        headers.set("apikey", key);
+        return fetch(input, { ...init, headers });
+      },
+    },
+  });
+}
+
+export const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+
+export async function getStats() {
+  const { data, error } = await publicClient().rpc("floatchat_stats");
+  if (error) throw new Error(error.message);
+  const s = data as Record<string, any>;
+  const m = (s["measurements_by_mode"] ?? {}) as Record<string, number>;
+  return {
+    total_floats: s["total_floats"],
+    total_cycles: s["total_cycles"],
+    total_profiles: s["total_profiles"],
+    total_measurements: s["total_measurements"],
+    profiles_by_mode: s["profiles_by_mode"],
+    profiles_by_source: s["profiles_by_source"],
+    real_time_obs: m["R"] ?? 0,
+    adjusted_obs: m["A"] ?? 0,
+    delayed_mode_obs: m["D"] ?? 0,
+    earliest_date: s["earliest_date"],
+    latest_date: s["latest_date"],
+    source_files: s["source_files"],
+  };
+}
+
+export async function getMapProfiles() {
+  const sb = publicClient();
+  const out: unknown[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb
+      .from("map_profiles")
+      .select("*")
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
+      .order("profile_time", { ascending: false })
+      .order("profile_id", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    out.push(...(data ?? []).map((r) => ({ ...r, platform_type: r.platform_type ?? "unknown", country: r.country ?? "—" })));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
+export async function getFloatTrack(floatId: string) {
+  const { data, error } = await publicClient()
+    .from("map_profiles")
+    .select("cycle_number, profile_id, latitude, longitude, profile_time, data_mode")
+    .eq("float_id", floatId)
+    .order("cycle_number", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ ...r, cycle_date: r.profile_time }));
+}
+
+export async function getProfileDetails(profileId: string) {
+  const sb = publicClient();
+  const { data: profile, error } = await sb.from("map_profiles").select("*").eq("profile_id", profileId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!profile) return null;
+  const { data: measurements, error: mErr } = await sb
+    .from("measurements")
+    .select("measurement_id, level_index, pressure, temperature, salinity, pres_qc, temp_qc, psal_qc, is_adjusted")
+    .eq("profile_id", profileId)
+    .order("pressure", { ascending: true })
+    .limit(5000);
+  if (mErr) throw new Error(mErr.message);
+  return { profile, measurements: measurements ?? [] };
+}
+
+export async function getTerms() {
+  const { data, error } = await publicClient().from("term_definitions").select("*").order("label");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((t) => ({ ...t, source: t.threshold_source ?? "PROJECT ASSUMPTION" }));
+}

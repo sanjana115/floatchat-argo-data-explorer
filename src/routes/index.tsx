@@ -1,23 +1,37 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+// Leaflet and Plotly touch `window` at import time, so the app loads only in the browser.
+const FloatChatApp = lazy(() => import("@/floatchat/FloatChatApp"));
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "FloatChat — Ask questions about real Argo ocean data" },
+      { name: "description", content: "Explore real Argo float temperature and salinity profiles on a map and ask questions in plain language, with full query provenance." },
+      { property: "og:title", content: "FloatChat — Ask questions about real Argo ocean data" },
+      { property: "og:description", content: "Map and chat over real Argo float profiles, with validated read-only queries and evidence for every answer." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+function Loading() {
+  return (
+    <div className="flex h-screen w-screen items-center justify-center bg-background text-sm text-muted-foreground">
+      Loading FloatChat…
+    </div>
+  );
+}
+
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <ClientOnly fallback={<Loading />}>
+      <Suspense fallback={<Loading />}>
+        <FloatChatApp />
+      </Suspense>
+    </ClientOnly>
   );
 }

@@ -30,6 +30,8 @@
  */
 
 @theme inline {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -74,8 +76,8 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --background: oklch(0.967 0.011 225);
+  --foreground: oklch(0.208 0.04 265.8);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
@@ -151,5 +153,127 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
 }
+
+/* ===== FloatChat (ported from the original app, unchanged) ===== */
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #EDF5FA;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBDCE7;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94B8CE;
+}
+
+/* Leaflet map custom styling for pastel ocean with smooth zoom transitions */
+.leaflet-container {
+  background-color: #D4EBF5 !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Smooth zoom and tile transitions */
+.leaflet-zoom-anim .leaflet-zoom-animated,
+.leaflet-zoom-animated {
+  -webkit-transition: -webkit-transform 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  -moz-transition: -moz-transform 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+.leaflet-tile {
+  transition: opacity 0.25s ease-in-out;
+}
+
+.leaflet-tile-container {
+  transition: opacity 0.25s ease-in-out;
+}
+
+.leaflet-tile-pane {
+  filter: contrast(1.22) brightness(1.10) saturate(1.25);
+  opacity: 0.95;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05) !important;
+  border: 1px solid #E2E8F0 !important;
+  padding: 4px !important;
+}
+
+.leaflet-popup-tip {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* Custom pulse and glow for active markers */
+@keyframes marine-pulse {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.9; }
+}
+
+.marker-pulse {
+  animation: marine-pulse 2.5s infinite ease-in-out;
+}
+
+/* Subtle bounce animation on hover for teal ARGO float markers and clusters */
+@keyframes argo-marker-bounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  25% {
+    transform: translateY(-8px) scale(1.15);
+  }
+  45% {
+    transform: translateY(-2px) scale(1.04);
+  }
+  65% {
+    transform: translateY(-5px) scale(1.10);
+  }
+  85% {
+    transform: translateY(-1px) scale(1.02);
+  }
+  100% {
+    transform: translateY(-3px) scale(1.08);
+  }
+}
+
+/* Elevate marker layer above tiles & contours on hover without altering Leaflet translate3d positioning */
+.reference-cluster-icon:hover,
+.reference-float-dot:hover,
+.custom-argo-marker:hover,
+.custom-cluster-marker:hover,
+.leaflet-marker-icon:has(.reference-cluster-icon):hover,
+.leaflet-marker-icon:has(.reference-float-dot):hover {
+  z-index: 1000 !important;
+}
+
+/* Animate the inner graphic elements for silky-smooth bounce without breaking map coordinates */
+.reference-cluster-icon > div,
+.reference-float-dot > div,
+.custom-argo-marker > div,
+.custom-cluster-marker > div {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+.reference-cluster-icon:hover > div,
+.reference-float-dot:hover > div,
+.custom-argo-marker:hover > div,
+.custom-cluster-marker:hover > div {
+  animation: argo-marker-bounce 0.65s cubic-bezier(0.28, 0.84, 0.42, 1) forwards;
+  filter: drop-shadow(0 6px 14px rgba(13, 115, 119, 0.45));
+}
+
+
