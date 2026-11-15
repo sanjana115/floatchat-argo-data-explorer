@@ -28,3 +28,12 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## FloatChat architecture
+- `/api/ask` is a TanStack server route (`src/routes/api/ask.ts` → `src/server/floatchat/ask.server.ts`), not a Supabase Edge Function — this stack runs server code on the Worker.
+- AI-generated SQL only runs through `public.floatchat_exec_select` (read-only role `floatchat_readonly`, read-only transaction, 8s timeout, service_role only); never execute LLM SQL any other way.
+- The executed SQL is the re-serialised AST from `src/lib/floatchat/sqlValidator.ts`, so what was validated is exactly what runs; keep validator, prompt rules and fallback SQL in sync.
+- Pipeline logic stays in pure modules under `src/lib/floatchat/` (terms, validator, loop, provenance, answer guard) so it is unit-testable; server files only wire I/O.
+- Term meanings live in `public.term_definitions` (NULL `threshold_source` = PROJECT ASSUMPTION); `src/test/floatchat/termDefinitions.fixture.ts` must mirror it (the live test checks this).
+- Argo data is loaded with `scripts/ingest_argo.py` from NetCDF files; R mode uses raw values, A/D mode uses *_ADJUSTED values and flags.
+- The original UI lives in `src/floatchat/` and is loaded client-only from `/` because Leaflet/Plotly need `window`.
