@@ -336,12 +336,12 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                   <p className="whitespace-pre-wrap">{msg.text}</p>
 
                   {/* Resolved Oceanographic Terms */}
-                  {msg.resolvedTerms && msg.resolvedTerms.length > 0 && (
+                  {((msg.resolvedTerms?.length ?? 0) > 0 || (msg.interpretations?.length ?? 0) > 0) && (
                     <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
                         How I read your question
                       </span>
-                      {msg.resolvedTerms.map((t, idx) => (
+                      {(msg.resolvedTerms ?? []).map((t, idx) => (
                         <div key={idx} className="text-[11px] text-slate-600 leading-snug flex items-start gap-1.5">
                           <span className="font-mono font-medium px-1.5 py-0.5 rounded bg-[#E1F5F0] text-[#0D5C52] border border-[#B2E4D8] shrink-0">
                             {t.label}
@@ -352,6 +352,19 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                               <span className="text-[10px] font-semibold text-amber-700 whitespace-nowrap">PROJECT ASSUMPTION</span>
                             ) : (
                               <span className="text-[10px] text-slate-400">Source: {t.source}</span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                      {(msg.interpretations ?? []).slice(msg.resolvedTerms?.length ?? 0).map((line, idx) => (
+                        <div key={`extra-${idx}`} className="text-[11px] text-slate-600 leading-snug flex items-start gap-1.5">
+                          <span className="font-mono font-medium px-1.5 py-0.5 rounded bg-[#E1F5F0] text-[#0D5C52] border border-[#B2E4D8] shrink-0">
+                            quality
+                          </span>
+                          <span>
+                            {line.replace(' (PROJECT ASSUMPTION)', '')}{' '}
+                            {line.includes('PROJECT ASSUMPTION') && (
+                              <span className="text-[10px] font-semibold text-amber-700 whitespace-nowrap">PROJECT ASSUMPTION</span>
                             )}
                           </span>
                         </div>
