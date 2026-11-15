@@ -228,7 +228,3 @@ export const MAP_TYPOGRAPHY_LABELS = [
   { text: 'BAY OF\nBENGAL', lat: 15.5, lon: 88.5, type: 'sea' },
   { text: 'I  N  D  I  A  N\nO  C  E  A  N', lat: -9.5, lon: 77.0, type: 'ocean' },
 ];
-
-// Cluster benchmarks shown on Image 2
-
-
