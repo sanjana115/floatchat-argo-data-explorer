@@ -24,6 +24,9 @@ export default function FloatChatApp() {
   // Data states
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [profilesError, setProfilesError] = useState<string | null>(null);
+  const [profilesLoading, setProfilesLoading] = useState(true);
   const [profiles, setProfiles] = useState<ArgoProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<ArgoProfile | null>(null);
   const [selectedFloatTrack, setSelectedFloatTrack] = useState<FloatTrackPoint[] | null>(null);
@@ -60,13 +63,16 @@ export default function FloatChatApp() {
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
+      setStatsError(null);
       const res = await fetch('/api/stats');
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
       }
-    } catch (err) {
+      setStats(data);
+    } catch (err: any) {
       console.error('Failed to fetch stats:', err);
+      setStatsError(err?.message ?? 'Unknown error');
     } finally {
       setStatsLoading(false);
     }
@@ -75,17 +81,22 @@ export default function FloatChatApp() {
   // Fetch Profiles
   const fetchProfiles = async () => {
     try {
+      setProfilesLoading(true);
+      setProfilesError(null);
       const res = await fetch('/api/map/profiles');
-      if (res.ok) {
-        const data = await res.json();
-        setProfiles(data);
-        if (data.length > 0 && !selectedProfile) {
-          const def = data[0];
-          setSelectedProfile(def);
-        }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(data)) {
+        throw new Error((data && data.error) || `HTTP ${res.status}`);
       }
-    } catch (err) {
+      setProfiles(data);
+      if (data.length > 0 && !selectedProfile) {
+        setSelectedProfile(data[0]);
+      }
+    } catch (err: any) {
       console.error('Failed to fetch profiles:', err);
+      setProfilesError(err?.message ?? 'Unknown error');
+    } finally {
+      setProfilesLoading(false);
     }
   };
 
@@ -157,9 +168,32 @@ export default function FloatChatApp() {
         body: JSON.stringify({ question: text }),
       });
 
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`The server returned an unreadable response (HTTP ${res.status}).`);
+      }
       if (!res.ok) {
-        throw new Error(data.error || 'Query pipeline failed');
+        // Pipeline error: keep its evidence (path, attempts, validation) for the error card.
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: 'msg-' + (Date.now() + 1),
+            sender: 'assistant',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            text: data?.error || `Query pipeline failed (HTTP ${res.status}).`,
+            error: data?.error || `HTTP ${res.status}`,
+            executionPath: data?.executionPath,
+            fallbackReason: data?.fallbackReason,
+            attempts: data?.attempts,
+            validation: data?.validation,
+            interpretations: data?.interpretations,
+            resolvedTerms: data?.resolvedTerms,
+            queryLogId: data?.queryLogId,
+          },
+        ]);
+        return;
       }
 
       setLoadingStep('Synthesizing scientific provenance...');
@@ -171,6 +205,7 @@ export default function FloatChatApp() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         text: data.answer,
         sql: data.sql,
+        validation: data.validation,
         interpretations: data.interpretations,
         resolvedTerms: data.resolvedTerms,
         provenance: data.provenance,
@@ -195,7 +230,7 @@ export default function FloatChatApp() {
         id: 'msg-' + (Date.now() + 1),
         sender: 'assistant',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        text: `Error processing query: ${err.message}. Please refine your search terms or verify constraints.`,
+        text: `Could not reach the FloatChat server: ${err.message}. Check your connection and try again.`,
         error: err.message,
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -225,7 +260,7 @@ export default function FloatChatApp() {
       return p.latitude >= 5.0 && p.latitude <= 23.0 && p.longitude >= 80.0 && p.longitude <= 96.0;
     }
     if (selectedBasin === 'equatorial') {
-      return p.latitude >= -10.0 && p.latitude <= 5.0 && p.longitude >= 60.0 && p.longitude <= 100.0;
+      return p.latitude >= -5.0 && p.latitude <= 5.0;
     }
     if (selectedBasin === 'southern') {
       return p.latitude < -15.0;
@@ -276,7 +311,7 @@ export default function FloatChatApp() {
           {currentTab === 'explore' && (
             <div className="flex-1 min-h-0 flex flex-col space-y-3">
               {/* 5 Compact Horizontal Metric Cards (Full Width) */}
-              <MetricCards stats={stats} loading={statsLoading} />
+              <MetricCards stats={stats} loading={statsLoading} error={statsError} onRetry={fetchStats} />
 
               {/* Main Interactive Indian Ocean Map (Full Width) */}
               <div className="flex-1 min-h-0 flex flex-col">
@@ -292,6 +327,10 @@ export default function FloatChatApp() {
                   selectedFloatTrack={selectedFloatTrack}
                   activeHighlightedFloatId={activeHighlightedFloatId}
                   onInspectFloatProfile={handleInspectFloatProfile}
+                  loading={profilesLoading}
+                  error={profilesError}
+                  totalLoaded={profiles.length}
+                  onRetry={fetchProfiles}
                 />
               </div>
             </div>
@@ -325,6 +364,9 @@ export default function FloatChatApp() {
           {currentTab === 'analytics' && (
             <AnalyticsView
               stats={stats}
+              loading={statsLoading}
+              error={statsError}
+              onRetry={fetchStats}
               onRunQuery={(q) => {
                 setCurrentTab('chat');
                 handleSendMessage(q);
@@ -335,6 +377,8 @@ export default function FloatChatApp() {
           {currentTab === 'floats' && (
             <FloatExplorerView
               profiles={profiles}
+              loading={profilesLoading}
+              error={profilesError}
               onSelectFloat={(p) => {
                 setSelectedProfile(p);
                 setActiveHighlightedFloatId(p.wmo_number);

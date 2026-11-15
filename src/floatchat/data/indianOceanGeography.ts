@@ -228,15 +228,3 @@ export const MAP_TYPOGRAPHY_LABELS = [
   { text: 'BAY OF\nBENGAL', lat: 15.5, lon: 88.5, type: 'sea' },
   { text: 'I  N  D  I  A  N\nO  C  E  A  N', lat: -9.5, lon: 77.0, type: 'ocean' },
 ];
-
-// Cluster benchmarks shown on Image 2
-export const TARGET_BENCHMARK_CLUSTERS = [
-  { id: 'c-36', count: 36, lat: 17.0, lon: 65.0, region: 'Arabian Sea' },
-  { id: 'c-48', count: 48, lat: 14.5, lon: 88.5, region: 'Bay of Bengal' },
-  { id: 'c-72', count: 72, lat: 6.5, lon: 78.0, region: 'South India / Sri Lanka' },
-  { id: 'c-119', count: 119, lat: -0.5, lon: 69.5, region: 'Equatorial Central' },
-  { id: 'c-67', count: 67, lat: -8.0, lon: 83.5, region: 'Central Indian Ocean' },
-  { id: 'c-28', count: 28, lat: -14.0, lon: 104.5, region: 'Eastern Indian Ocean' },
-  { id: 'c-21', count: 21, lat: -12.0, lon: 58.0, region: 'Western Indian Ocean' },
-];
-

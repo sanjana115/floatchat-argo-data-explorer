@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { ChatMessage } from '../../types/argo';
 import { EvidenceDrawer } from '../evidence/EvidenceDrawer';
+import { PathBadge, ValidationBadge, SourceBadge, ModeChip } from '../evidence/StatusChips';
+import { AlertTriangle, SearchX } from 'lucide-react';
 
 interface AskFloatChatViewProps {
   messages: ChatMessage[];
@@ -333,7 +335,32 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                       : 'bg-white border border-[#E2EEF5] text-slate-800 rounded-tl-none max-w-[92%] md:max-w-[85%]'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  {msg.error ? (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-3 space-y-1.5" role="alert">
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-rose-800">
+                        <AlertTriangle className="w-4 h-4" /> I couldn't answer this question.
+                      </div>
+                      <p className="text-xs text-rose-900/80">{msg.text}</p>
+                      {(msg.executionPath || msg.validation) && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          <PathBadge path={msg.executionPath} reason={msg.fallbackReason} />
+                          <ValidationBadge message={msg} />
+                        </div>
+                      )}
+                      {msg.attempts && msg.attempts.length > 0 && (
+                        <ul className="pt-1 space-y-0.5 text-[11px] font-mono text-rose-900/70">
+                          {msg.attempts.map((a, i) => (
+                            <li key={i}>
+                              {a.source === 'LLM' ? `Attempt ${a.attempt}` : 'Rule-based fallback'}: {a.stage === 'ok' ? 'passed' : `failed at ${a.stage}`}
+                              {a.error ? ` — ${a.error}` : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                  )}
 
                   {/* Resolved Oceanographic Terms */}
                   {((msg.resolvedTerms?.length ?? 0) > 0 || (msg.interpretations?.length ?? 0) > 0) && (
@@ -369,6 +396,34 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                           </span>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Evidence status strip: path, validation, data source, mode summary */}
+                  {msg.sender === 'assistant' && !msg.error && msg.provenance && (
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <PathBadge path={msg.executionPath} reason={msg.fallbackReason} />
+                        <ValidationBadge message={msg} />
+                        <SourceBadge real={msg.provenance.dataSourceSummary.real} synthetic={msg.provenance.dataSourceSummary.synthetic} />
+                        {msg.provenance.profileCount > 0 && <ModeChip {...msg.provenance.modeSummary} />}
+                        {msg.provenance.positionQc && msg.provenance.positionQc.unknown > 0 && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
+                            position QC unknown · {msg.provenance.positionQc.unknown}
+                          </span>
+                        )}
+                      </div>
+                      {msg.executionPath === 'RULE_BASED_FALLBACK' && msg.fallbackReason && (
+                        <div className="text-[11px] text-amber-800">Fallback reason: {msg.fallbackReason}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Empty result */}
+                  {msg.sender === 'assistant' && !msg.error && msg.rows && msg.rows.length === 0 && (
+                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] text-slate-600">
+                      <SearchX className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>The query ran safely but no stored observations matched these conditions, so there is nothing to chart.</span>
                     </div>
                   )}
 

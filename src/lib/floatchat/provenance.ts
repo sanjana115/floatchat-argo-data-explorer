@@ -1,6 +1,7 @@
 // Provenance: which floats, cycles and profiles stand behind an answer.
 import type { Expr, From, SelectFromStatement } from "pgsql-ast-parser";
 import { toSql } from "pgsql-ast-parser";
+import { tallyQc, type QcTally } from "./qc";
 
 export const PROVENANCE_LIMIT = 5000;
 
@@ -10,6 +11,8 @@ export interface ProvenanceRow {
   profile_id: string;
   data_mode: "R" | "A" | "D";
   data_source: "real" | "synthetic";
+  /** Position QC flag of the profile; null means no flag (counted as unknown). */
+  position_qc?: number | null;
 }
 
 export interface Provenance {
@@ -23,6 +26,8 @@ export interface Provenance {
   /** Counts over DISTINCT profiles. */
   modeSummary: { R: number; A: number; D: number };
   dataSourceSummary: { real: number; synthetic: number };
+  /** Position QC flags over DISTINCT profiles (missing flag = unknown). */
+  positionQc: QcTally;
   /** Human-readable description of what the provenance covers. */
   scope: string;
   method: "FROM_RESULT_ROWS" | "SECOND_QUERY_BY_IDS" | "SECOND_QUERY_BY_FILTERS" | "NONE";
@@ -64,6 +69,7 @@ export function summarize(rows: ProvenanceRow[], rowCount: number, meta: Pick<Pr
     profileCount: profiles.length,
     modeSummary,
     dataSourceSummary,
+    positionQc: tallyQc(profiles.map((p) => ({ flag: p.position_qc }))),
     ...meta,
   };
 }
@@ -71,14 +77,16 @@ export function summarize(rows: ProvenanceRow[], rowCount: number, meta: Pick<Pr
 /** True when every result row already carries the identifiers provenance needs. */
 export function rowsHaveIdentifiers(rows: Record<string, unknown>[]): boolean {
   if (rows.length === 0) return false;
-  return rows.every((r) => ["profile_id", "float_id", "cycle_number", "data_mode", "data_source"].every((k) => r[k] != null));
+  return rows.every(
+    (r) => ["profile_id", "float_id", "cycle_number", "data_mode", "data_source"].every((k) => r[k] != null) && "position_qc" in r,
+  );
 }
 
 /** Second query: identifiers for the exact profiles that appear in the result rows. */
 export function provenanceSqlForProfileIds(profileIds: string[]): string | null {
   const ids = [...new Set(profileIds.filter((id) => SAFE_ID.test(id)))];
   if (ids.length === 0) return null;
-  return `SELECT c.float_id, c.cycle_number, p.profile_id, p.data_mode, p.data_source FROM profiles p JOIN cycles c ON p.cycle_id = c.cycle_id WHERE p.profile_id IN (${ids.map((i) => `'${i}'`).join(", ")}) LIMIT ${PROVENANCE_LIMIT}`;
+  return `SELECT c.float_id, c.cycle_number, p.profile_id, p.data_mode, p.data_source, p.position_qc FROM profiles p JOIN cycles c ON p.cycle_id = c.cycle_id WHERE p.profile_id IN (${ids.map((i) => `'${i}'`).join(", ")}) LIMIT ${PROVENANCE_LIMIT}`;
 }
 
 /**
@@ -117,6 +125,7 @@ export function provenanceSqlFromFilters(ast: SelectFromStatement, resultFloatId
       { expr: ref(p, "profile_id") },
       { expr: ref(p, "data_mode") },
       { expr: ref(p, "data_source") },
+      { expr: ref(p, "position_qc") },
     ],
     from,
     where,

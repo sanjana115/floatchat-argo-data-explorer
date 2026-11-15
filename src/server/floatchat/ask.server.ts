@@ -14,6 +14,7 @@ import { computeFacts, checkAnswer, templateAnswer } from "@/lib/floatchat/answe
 import { SQL_INSTRUCTIONS, sqlUserPrompt, ANSWER_INSTRUCTIONS, answerUserPrompt } from "@/lib/floatchat/prompts";
 import { createGateway, streamToText, LlmError, FLOATCHAT_MODEL, type Gateway } from "./llm.server";
 import { generateValidateExecute, GenerationError, type Attempt, type ExecResult } from "@/lib/floatchat/generationLoop";
+import { summarizeRowsQc } from "@/lib/floatchat/qc";
 
 export const MAX_LLM_ATTEMPTS = 3;
 type Row = Record<string, unknown>;
@@ -68,21 +69,6 @@ async function buildProvenance(v: ValidationOk, rows: Row[]): Promise<Provenance
   return summarize(ex.rows as unknown as ProvenanceRow[], rows.length, { scope, method, provenanceSql: pv.sql, truncated: ex.rows.length >= PROVENANCE_LIMIT });
 }
 
-function qcBreakdown(rows: Row[]) {
-  const first = rows[0];
-  const col = first && "temp_qc" in first ? "temp_qc" : first && "psal_qc" in first ? "psal_qc" : null;
-  if (!col) return null;
-  const out = { column: col, good: 0, probably_good: 0, other: 0, missing: 0 };
-  for (const r of rows) {
-    const v = r[col];
-    if (v === null || v === undefined) out.missing++;
-    else if (v === 1) out.good++;
-    else if (v === 2) out.probably_good++;
-    else out.other++;
-  }
-  return out;
-}
-
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -106,7 +92,9 @@ export async function handleAsk(request: Request): Promise<Response> {
   let modelUsed: string | null = null;
   let final: { v: ValidationOk; rows: Row[]; ms: number } | null = null;
 
+  // One query_log row per request (no secrets: question, terms, SQL, counts, timings, errors).
   const log = async (row: Record<string, unknown>) => {
+    const lastSql = [...attempts].reverse().find((a) => a.executedSql || a.generatedSql);
     const { data, error } = await supabaseAdmin
       .from("query_log")
       .insert({
@@ -116,13 +104,17 @@ export async function handleAsk(request: Request): Promise<Response> {
         fallback_reason: fallbackReason,
         model: modelUsed,
         attempts: attempts as never,
+        attempt_count: attempts.length,
+        validator_ok: final !== null,
+        generated_sql: final ? final.v.sql : (lastSql?.executedSql ?? lastSql?.generatedSql ?? null),
+        execution_ms: final ? final.ms : null,
         duration_ms: Date.now() - t0,
         ...row,
       })
-      .select("id")
+      .select("log_id")
       .single();
     if (error) console.error("query_log insert failed:", error.message);
-    return data?.id ?? null;
+    return data?.log_id ?? null;
   };
 
   try {
@@ -211,9 +203,29 @@ export async function handleAsk(request: Request): Promise<Response> {
     }
     if (answerPath === "TEMPLATE") answer = templateAnswer(facts);
 
-    const provenanceOut = { ...provenance, executionTimeMs: final.ms, qcBreakdown: qcBreakdown(final.rows) };
+    const measurementQc = summarizeRowsQc(final.rows);
+    const provenanceOut = {
+      ...provenance,
+      executionTimeMs: final.ms,
+      measurementQc,
+      measurementQcNote: Object.keys(measurementQc).some((k) => k !== "position_qc")
+        ? null
+        : usesQualityFilter(final.v.sql)
+          ? "The returned rows do not include per-reading quality flags; the query itself only used readings flagged 1 (good) or 2 (probably good)."
+          : "The returned rows do not include per-reading quality flags.",
+    };
+    const okAttempt = attempts.find((a) => a.stage === "ok");
+    const validation = {
+      ok: true,
+      statement: "SELECT" as const,
+      passedOn: okAttempt ? okAttempt.attempt : null,
+      llmAttempts: attempts.filter((a) => a.source === "LLM").length,
+      maxLlmAttempts: MAX_LLM_ATTEMPTS,
+      rejected: attempts.filter((a) => a.stage === "validate").length,
+      limit: final.v.limit,
+      tables: final.v.tables,
+    };
     const queryLogId = await log({
-      final_sql: final.v.sql,
       provenance_sql: provenance.provenanceSql,
       row_count: final.rows.length,
       provenance: { ...provenance, profileIds: provenance.profileIds.slice(0, 500) },
@@ -230,6 +242,7 @@ export async function handleAsk(request: Request): Promise<Response> {
       interpretations: interpretation,
       resolvedTerms: terms,
       sql: final.v.sql,
+      validation,
       executionPath,
       fallbackReason,
       model: modelUsed,
@@ -242,7 +255,17 @@ export async function handleAsk(request: Request): Promise<Response> {
     });
   } catch (e) {
     const message = (e as Error).message ?? "Unknown error";
-    const queryLogId = await log({ status: "error", error: message }).catch(() => null);
-    return json({ error: message, executionPath, fallbackReason, attempts, interpretations: interpretation, resolvedTerms: terms, queryLogId }, 500);
+    const queryLogId = await log({ status: "error", error_message: message }).catch(() => null);
+    const validation = {
+      ok: final !== null,
+      statement: "SELECT" as const,
+      passedOn: null,
+      llmAttempts: attempts.filter((a) => a.source === "LLM").length,
+      maxLlmAttempts: MAX_LLM_ATTEMPTS,
+      rejected: attempts.filter((a) => a.stage === "validate").length,
+      limit: null,
+      tables: [],
+    };
+    return json({ error: message, executionPath, fallbackReason, attempts, validation, interpretations: interpretation, resolvedTerms: terms, queryLogId }, 500);
   }
 }

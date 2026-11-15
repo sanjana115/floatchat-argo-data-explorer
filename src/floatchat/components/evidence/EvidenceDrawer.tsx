@@ -13,6 +13,8 @@ import {
   Database,
 } from 'lucide-react';
 import { ChatMessage, ProvenanceInfo } from '../../types/argo';
+import { QcSummary } from './QcSummary';
+import { PathBadge, ValidationBadge, SourceBadge } from './StatusChips';
 
 interface EvidenceDrawerProps {
   message?: ChatMessage | undefined;
@@ -80,18 +82,8 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           <ShieldCheck className="w-4 h-4 text-teal-600" />
           <span className="text-xs font-bold text-slate-800 tracking-tight">Scientific Evidence & SQL Provenance</span>
-          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">
-            Validated SELECT
-          </span>
-          {path && (
-            <span
-              className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded border ${
-                path === 'LLM' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-amber-50 text-amber-800 border-amber-200'
-              }`}
-            >
-              {path}
-            </span>
-          )}
+          {message && <ValidationBadge message={message} />}
+          <PathBadge path={path} reason={message?.fallbackReason} />
         </div>
         <div className="flex items-center gap-3">
           {provenance && (
@@ -131,6 +123,28 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Validation status */}
+          {message?.validation && (
+            <div className={`p-2.5 border rounded-lg space-y-0.5 ${message.validation.ok ? 'bg-teal-50/40 border-teal-200' : 'bg-rose-50/50 border-rose-200'}`}>
+              <SectionTitle icon={<ShieldCheck className="w-3.5 h-3.5 text-slate-400" />}>Validation Status</SectionTitle>
+              <div className="font-mono text-[11px] text-slate-700 space-y-0.5">
+                <div>
+                  <span className="font-semibold">result:</span>{' '}
+                  {message.validation.ok
+                    ? `passed — exactly one read-only SELECT${message.validation.passedOn === 'fallback' ? ' (rule-based fallback)' : ` on LLM attempt ${message.validation.passedOn} of ${message.validation.maxLlmAttempts}`}`
+                    : 'no query passed validation and execution'}
+                </div>
+                <div><span className="font-semibold">LLM attempts:</span> {message.validation.llmAttempts} of {message.validation.maxLlmAttempts} · rejected by checker: {message.validation.rejected}</div>
+                {message.validation.ok && (
+                  <>
+                    <div><span className="font-semibold">tables:</span> {message.validation.tables.join(', ')}</div>
+                    <div><span className="font-semibold">row limit enforced:</span> {message.validation.limit}</div>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -189,11 +203,28 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
                 <div className="space-y-1 font-mono text-[11px]">
                   <div className="flex justify-between"><span>Profiles:</span><span className="font-bold text-slate-800">{provenance.profileCount}</span></div>
                   <div className="flex justify-between"><span>Cycles:</span><span className="font-bold text-slate-800">{provenance.cycleCount}</span></div>
-                  <div className="flex justify-between"><span>Real / synthetic:</span><span className="font-bold text-slate-800">{provenance.dataSourceSummary.real} / {provenance.dataSourceSummary.synthetic}</span></div>
-                  {provenance.qcBreakdown && (
-                    <div className="flex justify-between"><span>{provenance.qcBreakdown.column} = 1 / 2 / other:</span><span className="font-bold text-slate-800">{provenance.qcBreakdown.good} / {provenance.qcBreakdown.probably_good} / {provenance.qcBreakdown.other}</span></div>
-                  )}
+                  <div className="flex justify-between"><span>Real profiles:</span><span className="font-bold text-slate-800">{provenance.dataSourceSummary.real}</span></div>
+                  <div className="flex justify-between"><span>Synthetic profiles:</span><span className={`font-bold ${provenance.dataSourceSummary.synthetic ? 'text-orange-700' : 'text-slate-800'}`}>{provenance.dataSourceSummary.synthetic}</span></div>
+                  <div className="pt-0.5"><SourceBadge real={provenance.dataSourceSummary.real} synthetic={provenance.dataSourceSummary.synthetic} /></div>
                 </div>
+              </div>
+
+              {/* QC summary */}
+              <div className="p-2.5 bg-[#FAFDFE] border border-slate-200 rounded-lg col-span-2 space-y-2.5">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Quality-Control Summary</span>
+                <QcSummary title="Position QC (distinct profiles)" tally={provenance.positionQc} unit="profiles" />
+                {(['temp_qc', 'psal_qc', 'pres_qc'] as const).map((col) =>
+                  provenance.measurementQc?.[col] ? (
+                    <QcSummary
+                      key={col}
+                      title={`${col === 'temp_qc' ? 'Temperature' : col === 'psal_qc' ? 'Salinity' : 'Pressure'} QC (returned rows)`}
+                      tally={provenance.measurementQc[col]}
+                      unit="rows"
+                    />
+                  ) : null,
+                )}
+                {provenance.measurementQcNote && <div className="text-[10px] text-slate-500">{provenance.measurementQcNote}</div>}
+                <div className="text-[10px] text-slate-400">A missing flag, or flag 0 (not checked), is counted as unknown — never as good.</div>
               </div>
 
               <div className="p-2.5 bg-[#FAFDFE] border border-slate-200 rounded-lg col-span-2">

@@ -19,9 +19,22 @@ describe("provenance", () => {
     expect(p.cycleCount).toBe(3);
   });
 
+  it("counts a profile with no position QC flag as unknown, not good", () => {
+    const rows = [
+      { float_id: "A", cycle_number: 1, profile_id: "A_001", data_mode: "R", data_source: "real", position_qc: 1 },
+      { float_id: "A", cycle_number: 2, profile_id: "A_002", data_mode: "R", data_source: "real", position_qc: null },
+      { float_id: "A", cycle_number: 2, profile_id: "A_002", data_mode: "R", data_source: "real", position_qc: null },
+    ];
+    const p = summarize(rows as never, 3, { scope: "", method: "FROM_RESULT_ROWS", provenanceSql: null, truncated: false });
+    expect(p.positionQc.good).toBe(1);
+    expect(p.positionQc.unknown).toBe(1);
+    expect(p.positionQc.total).toBe(2);
+  });
+
   it("detects when identifiers are missing so a second query is needed", () => {
     expect(rowsHaveIdentifiers([{ avg_temperature: 28.8 }])).toBe(false);
-    expect(rowsHaveIdentifiers([{ float_id: "A", cycle_number: 1, profile_id: "A_001", data_mode: "R", data_source: "real" }])).toBe(true);
+    expect(rowsHaveIdentifiers([{ float_id: "A", cycle_number: 1, profile_id: "A_001", data_mode: "R", data_source: "real" }])).toBe(false);
+    expect(rowsHaveIdentifiers([{ float_id: "A", cycle_number: 1, profile_id: "A_001", data_mode: "R", data_source: "real", position_qc: null }])).toBe(true);
   });
 
   it("builds a validated second query from an aggregate query's filters", () => {

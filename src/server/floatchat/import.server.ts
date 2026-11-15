@@ -46,5 +46,8 @@ export async function handleImport(request: Request) {
     d.measurements.map((x, i) => ({ profile_id: profileId, level_index: i, pressure: x.pressure, temperature: x.temperature ?? null, salinity: x.salinity ?? null, is_adjusted: false })),
   );
   if (m.error) return json({ error: m.error.message }, 500);
+  // Keep the precomputed map/QC summaries in step with the new rows.
+  const r = await supabaseAdmin.rpc("floatchat_refresh_summaries");
+  if (r.error) console.error("summary refresh failed:", r.error.message);
   return json({ success: true, profile_id: profileId, count: d.measurements.length, data_source: "synthetic" });
 }

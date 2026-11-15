@@ -119,6 +119,13 @@ export type Database = {
             foreignKeyName: "measurements_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "profile_level_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "measurements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["profile_id"]
           },
@@ -131,6 +138,7 @@ export type Database = {
           data_mode: string
           data_source: string
           direction: string | null
+          ingested_at: string
           juld_qc: number | null
           latitude: number | null
           longitude: number | null
@@ -146,6 +154,7 @@ export type Database = {
           data_mode: string
           data_source: string
           direction?: string | null
+          ingested_at?: string
           juld_qc?: number | null
           latitude?: number | null
           longitude?: number | null
@@ -161,6 +170,7 @@ export type Database = {
           data_mode?: string
           data_source?: string
           direction?: string | null
+          ingested_at?: string
           juld_qc?: number | null
           latitude?: number | null
           longitude?: number | null
@@ -184,14 +194,20 @@ export type Database = {
         Row: {
           answer: string | null
           answer_path: string | null
+          asked_at: string
+          attempt_count: number | null
           attempts: Json | null
           created_at: string
           duration_ms: number | null
           error: string | null
+          error_message: string | null
+          execution_ms: number | null
           execution_path: string | null
           fallback_reason: string | null
           final_sql: string | null
+          generated_sql: string | null
           id: string
+          log_id: string
           model: string | null
           provenance: Json | null
           provenance_sql: string | null
@@ -199,18 +215,25 @@ export type Database = {
           resolved_terms: Json | null
           row_count: number | null
           status: string
+          validator_ok: boolean | null
         }
         Insert: {
           answer?: string | null
           answer_path?: string | null
+          asked_at?: string
+          attempt_count?: number | null
           attempts?: Json | null
           created_at?: string
           duration_ms?: number | null
           error?: string | null
+          error_message?: string | null
+          execution_ms?: number | null
           execution_path?: string | null
           fallback_reason?: string | null
           final_sql?: string | null
+          generated_sql?: string | null
           id?: string
+          log_id?: string
           model?: string | null
           provenance?: Json | null
           provenance_sql?: string | null
@@ -218,18 +241,25 @@ export type Database = {
           resolved_terms?: Json | null
           row_count?: number | null
           status?: string
+          validator_ok?: boolean | null
         }
         Update: {
           answer?: string | null
           answer_path?: string | null
+          asked_at?: string
+          attempt_count?: number | null
           attempts?: Json | null
           created_at?: string
           duration_ms?: number | null
           error?: string | null
+          error_message?: string | null
+          execution_ms?: number | null
           execution_path?: string | null
           fallback_reason?: string | null
           final_sql?: string | null
+          generated_sql?: string | null
           id?: string
+          log_id?: string
           model?: string | null
           provenance?: Json | null
           provenance_sql?: string | null
@@ -237,6 +267,7 @@ export type Database = {
           resolved_terms?: Json | null
           row_count?: number | null
           status?: string
+          validator_ok?: boolean | null
         }
         Relationships: []
       }
@@ -247,7 +278,11 @@ export type Database = {
           phrases: string[]
           plain_language: string
           required_tables: string[]
+          rule_text: string
+          source_note: string
           sql_condition: string
+          sql_fragment: string
+          term: string
           term_id: string
           threshold_source: string | null
           updated_at: string
@@ -258,7 +293,11 @@ export type Database = {
           phrases: string[]
           plain_language: string
           required_tables: string[]
+          rule_text: string
+          source_note: string
           sql_condition: string
+          sql_fragment: string
+          term: string
           term_id: string
           threshold_source?: string | null
           updated_at?: string
@@ -269,7 +308,11 @@ export type Database = {
           phrases?: string[]
           plain_language?: string
           required_tables?: string[]
+          rule_text?: string
+          source_note?: string
           sql_condition?: string
+          sql_fragment?: string
+          term?: string
           term_id?: string
           threshold_source?: string | null
           updated_at?: string
@@ -304,19 +347,40 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cycles_float_id_fkey"
-            columns: ["float_id"]
+            columns: ["wmo_number"]
             isOneToOne: false
             referencedRelation: "floats"
             referencedColumns: ["float_id"]
           },
           {
             foreignKeyName: "cycles_float_id_fkey"
-            columns: ["wmo_number"]
+            columns: ["float_id"]
             isOneToOne: false
             referencedRelation: "floats"
             referencedColumns: ["float_id"]
           },
         ]
+      }
+      profile_level_summary: {
+        Row: {
+          max_depth: number | null
+          n_levels: number | null
+          profile_id: string | null
+          surface_salinity: number | null
+          surface_temp: number | null
+        }
+        Relationships: []
+      }
+      qc_flag_counts: {
+        Row: {
+          kind: string | null
+          n: number | null
+          position_qc: number | null
+          pres_qc: number | null
+          psal_qc: number | null
+          temp_qc: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -324,6 +388,9 @@ export type Database = {
         Args: { max_rows?: number; query: string }
         Returns: Json
       }
+      floatchat_qc_summary: { Args: never; Returns: Json }
+      floatchat_refresh_summaries: { Args: never; Returns: undefined }
+      floatchat_region_summary: { Args: never; Returns: Json }
       floatchat_stats: { Args: never; Returns: Json }
     }
     Enums: {
