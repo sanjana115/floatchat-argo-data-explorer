@@ -4,7 +4,7 @@ import type { ChatMessage } from '../../types/argo';
 
 const chip = 'inline-flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded border';
 
-export const PathBadge: React.FC<{ path?: ChatMessage['executionPath']; reason?: string | null }> = ({ path, reason }) => {
+export const PathBadge: React.FC<{ path?: ChatMessage['executionPath'] | undefined; reason?: string | null | undefined }> = ({ path, reason }) => {
   if (!path) return null;
   return path === 'LLM' ? (
     <span className={`${chip} bg-sky-50 text-sky-700 border-sky-200`} title="The AI wrote the query">
