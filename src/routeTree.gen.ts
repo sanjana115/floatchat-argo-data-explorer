@@ -10,33 +10,128 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiAskRouteImport } from './routes/api/ask'
+import { Route as ApiImportProfileRouteImport } from './routes/api/import-profile'
+import { Route as ApiStatsRouteImport } from './routes/api/stats'
+import { Route as ApiTermsRouteImport } from './routes/api/terms'
+import { Route as ApiMapProfilesRouteImport } from './routes/api/map.profiles'
+import { Route as ApiProfileIdRouteImport } from './routes/api/profile.$id'
+import { Route as ApiFloatIdTrackRouteImport } from './routes/api/float.$id.track'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAskRoute = ApiAskRouteImport.update({
+  id: '/api/ask',
+  path: '/api/ask',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImportProfileRoute = ApiImportProfileRouteImport.update({
+  id: '/api/import-profile',
+  path: '/api/import-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStatsRoute = ApiStatsRouteImport.update({
+  id: '/api/stats',
+  path: '/api/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTermsRoute = ApiTermsRouteImport.update({
+  id: '/api/terms',
+  path: '/api/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMapProfilesRoute = ApiMapProfilesRouteImport.update({
+  id: '/api/map/profiles',
+  path: '/api/map/profiles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProfileIdRoute = ApiProfileIdRouteImport.update({
+  id: '/api/profile/$id',
+  path: '/api/profile/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFloatIdTrackRoute = ApiFloatIdTrackRouteImport.update({
+  id: '/api/float/$id/track',
+  path: '/api/float/$id/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/ask': typeof ApiAskRoute
+  '/api/import-profile': typeof ApiImportProfileRoute
+  '/api/stats': typeof ApiStatsRoute
+  '/api/terms': typeof ApiTermsRoute
+  '/api/map/profiles': typeof ApiMapProfilesRoute
+  '/api/profile/$id': typeof ApiProfileIdRoute
+  '/api/float/$id/track': typeof ApiFloatIdTrackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/ask': typeof ApiAskRoute
+  '/api/import-profile': typeof ApiImportProfileRoute
+  '/api/stats': typeof ApiStatsRoute
+  '/api/terms': typeof ApiTermsRoute
+  '/api/map/profiles': typeof ApiMapProfilesRoute
+  '/api/profile/$id': typeof ApiProfileIdRoute
+  '/api/float/$id/track': typeof ApiFloatIdTrackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/ask': typeof ApiAskRoute
+  '/api/import-profile': typeof ApiImportProfileRoute
+  '/api/stats': typeof ApiStatsRoute
+  '/api/terms': typeof ApiTermsRoute
+  '/api/map/profiles': typeof ApiMapProfilesRoute
+  '/api/profile/$id': typeof ApiProfileIdRoute
+  '/api/float/$id/track': typeof ApiFloatIdTrackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/api/ask'
+    | '/api/import-profile'
+    | '/api/stats'
+    | '/api/terms'
+    | '/api/map/profiles'
+    | '/api/profile/$id'
+    | '/api/float/$id/track'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/api/ask'
+    | '/api/import-profile'
+    | '/api/stats'
+    | '/api/terms'
+    | '/api/map/profiles'
+    | '/api/profile/$id'
+    | '/api/float/$id/track'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/ask'
+    | '/api/import-profile'
+    | '/api/stats'
+    | '/api/terms'
+    | '/api/map/profiles'
+    | '/api/profile/$id'
+    | '/api/float/$id/track'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiAskRoute: typeof ApiAskRoute
+  ApiImportProfileRoute: typeof ApiImportProfileRoute
+  ApiStatsRoute: typeof ApiStatsRoute
+  ApiTermsRoute: typeof ApiTermsRoute
+  ApiMapProfilesRoute: typeof ApiMapProfilesRoute
+  ApiProfileIdRoute: typeof ApiProfileIdRoute
+  ApiFloatIdTrackRoute: typeof ApiFloatIdTrackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +143,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ask': {
+      id: '/api/ask'
+      path: '/api/ask'
+      fullPath: '/api/ask'
+      preLoaderRoute: typeof ApiAskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/import-profile': {
+      id: '/api/import-profile'
+      path: '/api/import-profile'
+      fullPath: '/api/import-profile'
+      preLoaderRoute: typeof ApiImportProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stats': {
+      id: '/api/stats'
+      path: '/api/stats'
+      fullPath: '/api/stats'
+      preLoaderRoute: typeof ApiStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/terms': {
+      id: '/api/terms'
+      path: '/api/terms'
+      fullPath: '/api/terms'
+      preLoaderRoute: typeof ApiTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/map/profiles': {
+      id: '/api/map/profiles'
+      path: '/api/map/profiles'
+      fullPath: '/api/map/profiles'
+      preLoaderRoute: typeof ApiMapProfilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profile/$id': {
+      id: '/api/profile/$id'
+      path: '/api/profile/$id'
+      fullPath: '/api/profile/$id'
+      preLoaderRoute: typeof ApiProfileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/float/$id/track': {
+      id: '/api/float/$id/track'
+      path: '/api/float/$id/track'
+      fullPath: '/api/float/$id/track'
+      preLoaderRoute: typeof ApiFloatIdTrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiAskRoute: ApiAskRoute,
+  ApiImportProfileRoute: ApiImportProfileRoute,
+  ApiStatsRoute: ApiStatsRoute,
+  ApiTermsRoute: ApiTermsRoute,
+  ApiMapProfilesRoute: ApiMapProfilesRoute,
+  ApiProfileIdRoute: ApiProfileIdRoute,
+  ApiFloatIdTrackRoute: ApiFloatIdTrackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
