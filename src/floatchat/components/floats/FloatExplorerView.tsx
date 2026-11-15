@@ -8,7 +8,10 @@ import {
   Eye, 
   Filter, 
   Compass,
-  ArrowUpRight
+  ArrowUpRight,
+  AlertTriangle,
+  Loader2,
+  SearchX
 } from 'lucide-react';
 import { ArgoProfile } from '../../types/argo';
 
@@ -17,26 +20,35 @@ interface FloatExplorerViewProps {
   onSelectFloat: (profile: ArgoProfile) => void;
   onInspectProfile: (profileId: string) => void;
   onAskAboutFloat: (wmoNumber: string) => void;
+  loading?: boolean;
+  error?: string | null;
 }
+
+const fmtLat = (v: number) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? 'N' : 'S'}`;
+const fmtLon = (v: number) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? 'E' : 'W'}`;
 
 export const FloatExplorerView: React.FC<FloatExplorerViewProps> = ({
   profiles,
   onSelectFloat,
   onInspectProfile,
   onAskAboutFloat,
+  loading = false,
+  error = null,
 }) => {
   const [search, setSearch] = useState('');
   const [modeFilter, setModeFilter] = useState('ALL');
 
   // Group latest profiles by float
-  const floatsMap = new Map<string, { latestProfile: ArgoProfile; totalCycles: number }>();
+  const floatsMap = new Map<string, { latestProfile: ArgoProfile; totalCycles: number; synthetic: number }>();
   profiles.forEach((p) => {
     const id = p.wmo_number || p.float_id;
     const existing = floatsMap.get(id);
+    const isSyn = p.data_source === 'synthetic' ? 1 : 0;
     if (!existing) {
-      floatsMap.set(id, { latestProfile: p, totalCycles: 1 });
+      floatsMap.set(id, { latestProfile: p, totalCycles: 1, synthetic: isSyn });
     } else {
       existing.totalCycles++;
+      existing.synthetic += isSyn;
       if (p.cycle_number > existing.latestProfile.cycle_number) {
         existing.latestProfile = p;
       }
@@ -81,7 +93,7 @@ export const FloatExplorerView: React.FC<FloatExplorerViewProps> = ({
           </div>
 
           <div className="flex items-center p-0.5 bg-[#EDF5FA] rounded-lg border border-[#E2E8F0] text-xs">
-            {['ALL', 'D', 'R'].map((m) => (
+            {['ALL', 'R', 'A', 'D'].map((m) => (
               <button
                 key={m}
                 onClick={() => setModeFilter(m)}
@@ -89,16 +101,38 @@ export const FloatExplorerView: React.FC<FloatExplorerViewProps> = ({
                   modeFilter === m ? 'bg-white text-teal-900 shadow-xs font-semibold' : 'text-slate-600'
                 }`}
               >
-                {m === 'ALL' ? 'All Modes' : m === 'D' ? 'Delayed (D)' : 'Real-Time (R)'}
+                {m === 'ALL' ? 'All Modes' : m === 'D' ? 'Delayed (D)' : m === 'A' ? 'Adjusted (A)' : 'Real-Time (R)'}
               </button>
             ))}
           </div>
         </div>
       </div>
 
+      {/* Loading / error / empty states */}
+      {loading && (
+        <div role="status" className="flex items-center gap-2 bg-white p-4 rounded-2xl border border-[#E2E8F0] text-xs text-slate-600">
+          <Loader2 className="w-4 h-4 animate-spin text-teal-600" /> Loading floats from the database…
+        </div>
+      )}
+      {!loading && error && (
+        <div role="alert" className="flex items-start gap-2 bg-white p-4 rounded-2xl border border-rose-200 text-xs">
+          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+          <div><div className="font-semibold text-slate-900">Couldn't load floats</div><div className="text-slate-500">{error}</div></div>
+        </div>
+      )}
+      {!loading && !error && filtered.length === 0 && (
+        <div className="flex items-start gap-2 bg-white p-4 rounded-2xl border border-[#E2E8F0] text-xs">
+          <SearchX className="w-4 h-4 text-slate-400 shrink-0" />
+          <div>
+            <div className="font-semibold text-slate-900">{floatList.length === 0 ? 'No floats in the database yet' : 'No floats match your search'}</div>
+            <div className="text-slate-500">{floatList.length === 0 ? 'Load Argo NetCDF files to list floats here.' : `${floatList.length.toLocaleString()} floats are loaded; try another WMO number or mode.`}</div>
+          </div>
+        </div>
+      )}
+
       {/* Floats Table / Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(({ latestProfile: p, totalCycles }) => (
+        {filtered.map(({ latestProfile: p, totalCycles, synthetic }) => (
           <div
             key={p.wmo_number}
             className="bg-white rounded-xl border border-[#E2E8F0] p-4 shadow-2xs hover:shadow-sm hover:border-teal-300 transition-all duration-200 flex flex-col justify-between group"
@@ -114,24 +148,35 @@ export const FloatExplorerView: React.FC<FloatExplorerViewProps> = ({
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-teal-600" />
-                    <span>{p.latitude.toFixed(2)}°N, {p.longitude.toFixed(2)}°E</span>
+                    <span>{fmtLat(p.latitude)}, {fmtLon(p.longitude)}</span>
                   </div>
                 </div>
 
-                <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
-                    p.data_mode === 'D'
-                      ? 'bg-teal-50 text-teal-800 border-teal-200'
-                      : 'bg-amber-50 text-amber-800 border-amber-200'
-                  }`}
-                >
-                  Mode: {p.data_mode}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                      p.data_mode === 'D'
+                        ? 'bg-teal-50 text-teal-800 border-teal-200'
+                        : p.data_mode === 'A'
+                        ? 'bg-sky-50 text-sky-800 border-sky-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}
+                  >
+                    Mode: {p.data_mode}
+                  </span>
+                  {synthetic > 0 ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-dashed border-orange-500 bg-orange-50 text-orange-800">
+                      Synthetic {synthetic === totalCycles ? '' : `· ${synthetic}/${totalCycles}`}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Real</span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 py-2.5 border-y border-slate-100 my-2 text-xs">
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Cycles</span>
+                  <span className="text-[10px] text-slate-400 block">Profiles</span>
                   <span className="font-mono font-bold text-slate-800">{totalCycles}</span>
                 </div>
                 <div>
