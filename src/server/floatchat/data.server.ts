@@ -23,7 +23,20 @@ function publicClient() {
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
+// Short cache so the dashboard does not re-scan every reading on each page load. Cleared after imports.
+let statsCache: { at: number; value: Awaited<ReturnType<typeof computeStats>> } | null = null;
+const STATS_TTL_MS = 60_000;
+export function invalidateStatsCache() {
+  statsCache = null;
+}
 export async function getStats() {
+  if (statsCache && Date.now() - statsCache.at < STATS_TTL_MS) return statsCache.value;
+  const value = await computeStats();
+  statsCache = { at: Date.now(), value };
+  return value;
+}
+
+async function computeStats() {
   const sb = publicClient();
   const [base, qc, regions] = await Promise.all([
     sb.rpc("floatchat_stats"),
