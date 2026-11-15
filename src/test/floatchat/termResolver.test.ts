@@ -27,14 +27,34 @@ describe("term resolver", () => {
     expect(ids("deeper layers")).toEqual([]);
   });
 
-  it("labels unsourced thresholds PROJECT ASSUMPTION and keeps sources for sourced ones", () => {
+  it("labels every confirmed threshold PROJECT ASSUMPTION and keeps background notes", () => {
     const r = resolveTerms("surface temperature in the tropics", defs);
     const surface = r.find((t) => t.termId === "surface")!;
     const tropics = r.find((t) => t.termId === "tropics")!;
     expect(surface.isProjectAssumption).toBe(true);
-    expect(surface.source).toBe(PROJECT_ASSUMPTION);
-    expect(tropics.isProjectAssumption).toBe(false);
+    expect(surface.source).toContain(PROJECT_ASSUMPTION);
+    expect(tropics.isProjectAssumption).toBe(true);
     expect(tropics.source).toContain("23.44");
+  });
+
+  it("treats a term without a source note as PROJECT ASSUMPTION", () => {
+    const bare = [{ ...defs[0]!, source_note: "" }];
+    const [t] = resolveTerms("near the equator", bare);
+    expect(t?.isProjectAssumption).toBe(true);
+    expect(t?.source).toBe(PROJECT_ASSUMPTION);
+  });
+
+  it("uses the confirmed values", () => {
+    const cond = (id: string) => defs.find((d) => d.term_id === id)!.sql_fragment;
+    expect(cond("near_the_equator")).toBe("p.latitude BETWEEN -5 AND 5");
+    expect(cond("tropics")).toBe("p.latitude BETWEEN -23.44 AND 23.44");
+    expect(cond("arabian_sea")).toBe("p.latitude BETWEEN 8 AND 26 AND p.longitude BETWEEN 52 AND 77.5");
+    expect(cond("bay_of_bengal")).toBe("p.latitude BETWEEN 5 AND 23 AND p.longitude BETWEEN 80 AND 96");
+    expect(cond("surface")).toBe("m.pressure <= 10");
+    expect(cond("deep_water")).toBe("m.pressure >= 1000");
+    expect(cond("thermocline")).toBe("m.pressure BETWEEN 100 AND 400");
+    expect(cond("recent")).toBe("p.profile_time >= (SELECT max(p2.profile_time) FROM profiles p2) - INTERVAL '30 days'");
+    expect(defs.every((d) => d.source_note.startsWith("PROJECT ASSUMPTION"))).toBe(true);
   });
 
   it("produces one plain-language interpretation line per term", () => {

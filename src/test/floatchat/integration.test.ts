@@ -59,9 +59,9 @@ describe.skipIf(!live)("read-only executor (live database)", () => {
   });
 
   it("term_definitions in the database match the test fixture", async () => {
-    const r = await fetch(`${URL}/rest/v1/term_definitions?select=term_id,phrases,sql_condition,threshold_source&order=term_id`, { headers: headers() });
-    const db = (await r.json()) as Array<{ term_id: string; phrases: string[]; sql_condition: string; threshold_source: string | null }>;
-    const fx = TERM_DEFINITIONS.map((d) => ({ term_id: d.term_id, phrases: d.phrases, sql_condition: d.sql_condition, threshold_source: d.threshold_source })).sort((a, b) => a.term_id.localeCompare(b.term_id));
+    const r = await fetch(`${URL}/rest/v1/term_definitions?select=term_id,term,phrases,sql_fragment,rule_text,source_note&order=term_id`, { headers: headers() });
+    const db = (await r.json()) as Array<{ term_id: string; term: string; phrases: string[]; sql_fragment: string; rule_text: string; source_note: string }>;
+    const fx = TERM_DEFINITIONS.map((d) => ({ term_id: d.term_id, term: d.term, phrases: d.phrases, sql_fragment: d.sql_fragment, rule_text: d.rule_text, source_note: d.source_note })).sort((a, b) => a.term_id.localeCompare(b.term_id));
     expect(db).toEqual(fx);
   });
 
@@ -123,7 +123,7 @@ describe.skipIf(!live)("/api/ask end-to-end (live app + LLM)", () => {
     for (const id of body.provenance.floatIds) expect(body.answer).not.toContain(id);
     const m = body.provenance.modeSummary;
     expect(m.R + m.A + m.D).toBe(body.provenance.profileCount);
-    const log = await fetch(`${URL}/rest/v1/query_log?id=eq.${body.queryLogId}&select=question,execution_path,final_sql,status`, { headers: headers() }).then((r) => r.json());
+    const log = await fetch(`${URL}/rest/v1/query_log?log_id=eq.${body.queryLogId}&select=question,execution_path,generated_sql,validator_ok,attempt_count,row_count,execution_ms,status,error_message`, { headers: headers() }).then((r) => r.json());
     expect(log[0]).toMatchObject({ question, execution_path: body.executionPath, final_sql: body.sql, status: "ok" });
   }, 120000);
 

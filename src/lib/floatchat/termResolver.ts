@@ -3,13 +3,17 @@
 
 export interface TermDefinition {
   term_id: string;
-  label: string;
+  /** Canonical term, e.g. "deep water". */
+  term: string;
   phrases: string[];
   category: string;
-  sql_condition: string;
+  /** SQL condition using aliases p (profiles) / m (measurements). */
+  sql_fragment: string;
   required_tables: string[];
-  plain_language: string;
-  threshold_source: string | null;
+  /** Plain-language rule shown to the user. */
+  rule_text: string;
+  /** Where the threshold comes from; contains "PROJECT ASSUMPTION" when it is the project's choice. */
+  source_note: string;
 }
 
 export interface ResolvedTerm {
@@ -21,7 +25,7 @@ export interface ResolvedTerm {
   requiredTables: string[];
   /** Plain-language interpretation line shown to the user. */
   interpretation: string;
-  /** Citation for the threshold, or the literal "PROJECT ASSUMPTION". */
+  /** source_note from term_definitions (citation and/or PROJECT ASSUMPTION label). */
   source: string;
   isProjectAssumption: boolean;
 }
@@ -61,16 +65,17 @@ export function resolveTerms(question: string, defs: TermDefinition[]): Resolved
   return [...hits.values()]
     .sort((a, b) => a.index - b.index)
     .map(({ matched, def }) => {
-      const isProjectAssumption = !def.threshold_source;
+      const note = (def.source_note ?? "").trim();
+      const isProjectAssumption = note === "" || note.toUpperCase().includes(PROJECT_ASSUMPTION);
       return {
         termId: def.term_id,
-        label: def.label,
+        label: def.term,
         matchedText: matched,
         category: def.category,
-        sqlCondition: def.sql_condition,
+        sqlCondition: def.sql_fragment,
         requiredTables: def.required_tables,
-        interpretation: def.plain_language,
-        source: isProjectAssumption ? PROJECT_ASSUMPTION : (def.threshold_source as string),
+        interpretation: def.rule_text,
+        source: note === "" ? PROJECT_ASSUMPTION : note,
         isProjectAssumption,
       };
     });
