@@ -5,7 +5,9 @@ export const Route = createFileRoute("/api/import-profile")({
     handlers: {
       POST: async ({ request }) => {
         const { handleImport } = await import("@/server/floatchat/import.server");
-        return handleImport(request);
+        const res = await handleImport(request);
+        if (res.ok) (await import("@/server/floatchat/data.server")).invalidateStatsCache();
+        return res;
       },
     },
   },

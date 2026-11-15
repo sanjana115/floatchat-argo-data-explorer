@@ -26,6 +26,7 @@ export interface ArgoProfile {
   position_qc: number;
   data_mode: DataMode;
   source_file?: string;
+  data_source?: 'real' | 'synthetic';
   float_id: string;
   wmo_number: string;
   platform_type: string;
@@ -70,6 +71,38 @@ export interface DatabaseStats {
   earliest_date: string | null;
   latest_date: string | null;
   source_files: string[];
+  qc: Record<'pres_qc' | 'temp_qc' | 'psal_qc' | 'position_qc', QcTally> | null;
+  qc_error: string | null;
+  regions: RegionSummary[] | null;
+  regions_error: string | null;
+}
+
+export type QcBucket = 'good' | 'probably_good' | 'probably_bad' | 'bad' | 'changed' | 'estimated' | 'missing_value' | 'unknown';
+export type QcTally = Record<QcBucket, number> & { total: number };
+
+export interface RegionSummary {
+  term_id: string;
+  term: string;
+  rule_text: string;
+  source_note: string;
+  profiles: number;
+  floats: number;
+  surface_readings: number;
+  avg_surface_temperature: number | null;
+  avg_surface_salinity: number | null;
+  min_surface_salinity: number | null;
+  max_surface_salinity: number | null;
+}
+
+export interface ValidationInfo {
+  ok: boolean;
+  statement: 'SELECT';
+  passedOn: number | 'fallback' | null;
+  llmAttempts: number;
+  maxLlmAttempts: number;
+  rejected: number;
+  limit: number | null;
+  tables: string[];
 }
 
 export interface ResolvedTerm {
@@ -98,8 +131,10 @@ export interface ProvenanceInfo {
   method: 'FROM_RESULT_ROWS' | 'SECOND_QUERY_BY_IDS' | 'SECOND_QUERY_BY_FILTERS' | 'NONE';
   provenanceSql: string | null;
   truncated: boolean;
+  positionQc: QcTally;
   executionTimeMs: number;
-  qcBreakdown: { column: string; good: number; probably_good: number; other: number; missing: number } | null;
+  measurementQc: Partial<Record<'pres_qc' | 'temp_qc' | 'psal_qc' | 'position_qc', QcTally>>;
+  measurementQcNote: string | null;
 }
 
 export interface PipelineAttempt {
@@ -117,6 +152,7 @@ export interface ChatMessage {
   timestamp: string;
   text: string;
   sql?: string;
+  validation?: ValidationInfo;
   interpretations?: string[];
   resolvedTerms?: ResolvedTerm[];
   provenance?: ProvenanceInfo;
