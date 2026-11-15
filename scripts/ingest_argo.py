@@ -143,6 +143,9 @@ def main(paths):
     if batch:
         post("measurements", batch, on_conflict="profile_id,level_index")
         total += len(batch)
+    # Refresh the precomputed dashboard summaries (per-profile levels, QC flag counts).
+    rr = requests.post(f"{URL}/rest/v1/rpc/floatchat_refresh_summaries", headers=H, json={}, timeout=600)
+    rr.raise_for_status()
     print(json.dumps({"files": len(files), "floats": len(floats), "cycles": len(cyc), "profiles": len(prow),
                       "measurements": total, "levels_skipped_no_adjusted_pressure": dropped_total}))
 
