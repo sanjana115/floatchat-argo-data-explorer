@@ -11,14 +11,55 @@ import {
   Info,
   Waves,
   Activity,
-  MapPin
+  MapPin,
+  AlertTriangle,
+  RefreshCw,
+  Loader2,
+  SearchX
 } from 'lucide-react';
 import { ArgoProfile, FloatTrackPoint } from '../../types/argo';
 import { 
   INDIAN_OCEAN_BATHYMETRY, 
   MAP_TYPOGRAPHY_LABELS,
-  TARGET_BENCHMARK_CLUSTERS
 } from '../../data/indianOceanGeography';
+
+const CLUSTER_CELL_DEG = 10;
+const CLUSTER_MIN_FLOATS = 5;
+
+const fmtLat = (v: number) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? 'N' : 'S'}`;
+const fmtLon = (v: number) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? 'E' : 'W'}`;
+const MODE_LABEL: Record<string, string> = { R: 'Real-Time (R)', A: 'Adjusted (A)', D: 'Delayed-Mode (D)' };
+
+/** Clusters computed from the loaded profiles: distinct floats per 10° cell (no preset counts). */
+function buildClusters(profiles: ArgoProfile[]) {
+  const cells = new Map<string, { floats: Set<string>; synthetic: Set<string>; n: number; lat: number; lon: number; cellLat: number; cellLon: number }>();
+  for (const p of profiles) {
+    const cellLat = Math.floor(p.latitude / CLUSTER_CELL_DEG) * CLUSTER_CELL_DEG;
+    const cellLon = Math.floor(p.longitude / CLUSTER_CELL_DEG) * CLUSTER_CELL_DEG;
+    const key = `${cellLat}:${cellLon}`;
+    let c = cells.get(key);
+    if (!c) {
+      c = { floats: new Set(), synthetic: new Set(), n: 0, lat: 0, lon: 0, cellLat, cellLon };
+      cells.set(key, c);
+    }
+    c.floats.add(p.float_id);
+    if (p.data_source === 'synthetic') c.synthetic.add(p.profile_id);
+    c.n++;
+    c.lat += p.latitude;
+    c.lon += p.longitude;
+  }
+  return [...cells.entries()]
+    .map(([id, c]) => ({
+      id,
+      count: c.floats.size,
+      profiles: c.n,
+      synthetic: c.synthetic.size,
+      lat: c.lat / c.n,
+      lon: c.lon / c.n,
+      region: `${fmtLat(c.cellLat).replace('.00', '')}–${fmtLat(c.cellLat + CLUSTER_CELL_DEG).replace('.00', '')}, ${fmtLon(c.cellLon).replace('.00', '')}–${fmtLon(c.cellLon + CLUSTER_CELL_DEG).replace('.00', '')}`,
+    }))
+    .filter((c) => c.count >= CLUSTER_MIN_FLOATS);
+}
 
 interface OceanMapProps {
   profiles: ArgoProfile[];
@@ -29,6 +70,11 @@ interface OceanMapProps {
   selectedFloatTrack: FloatTrackPoint[] | null;
   activeHighlightedFloatId: string | null;
   onInspectFloatProfile: (profileId: string) => void;
+  loading?: boolean;
+  error?: string | null;
+  /** Number of profiles loaded before filters, to tell "no data" from "filtered out". */
+  totalLoaded?: number;
+  onRetry?: () => void;
 }
 
 export const OceanMap: React.FC<OceanMapProps> = ({
@@ -40,6 +86,10 @@ export const OceanMap: React.FC<OceanMapProps> = ({
   selectedFloatTrack,
   activeHighlightedFloatId,
   onInspectFloatProfile,
+  loading = false,
+  error = null,
+  totalLoaded = 0,
+  onRetry,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -182,8 +232,8 @@ export const OceanMap: React.FC<OceanMapProps> = ({
 
     clusterGroup.clearLayers();
 
-    // 1. Render the Benchmark Target Clusters from Image 2 (119, 72, 48, 36, 67, 28, 21)
-    TARGET_BENCHMARK_CLUSTERS.forEach((c) => {
+    // 1. Clusters computed from the loaded profiles (distinct floats per 10° cell)
+    buildClusters(profiles).forEach((c) => {
       // Dynamic halo & diameter based on count
       const isHuge = c.count >= 100;
       const innerSize = isHuge ? 44 : c.count >= 60 ? 38 : 34;
@@ -217,8 +267,9 @@ export const OceanMap: React.FC<OceanMapProps> = ({
 
       clusterMarker.bindTooltip(
         `<div style="font-family: system-ui, sans-serif; font-size: 11px; padding: 3px 6px;">
-          <strong style="color: #0D7377;">ARGO Cluster: ${c.count} Floats</strong><br/>
+          <strong style="color: #0D7377;">${c.count} floats · ${c.profiles} profiles</strong><br/>
           <span>${c.region}</span><br/>
+          ${c.synthetic ? `<span style="color:#C2410C;font-weight:600;">${c.synthetic} synthetic profile${c.synthetic === 1 ? '' : 's'}</span><br/>` : ''}
           <span style="font-size: 10px; color: #64748B;">Click to zoom into basin</span>
         </div>`,
         { direction: 'top', offset: [0, -innerSize / 2] }
@@ -232,13 +283,18 @@ export const OceanMap: React.FC<OceanMapProps> = ({
       const isSelected = selectedProfile?.profile_id === p.profile_id;
       const isHighlighted = activeHighlightedFloatId === p.wmo_number || activeHighlightedFloatId === p.float_id;
 
-      const dotColor = p.data_mode === 'D' ? '#0D7377' : '#14B8A6';
-      const size = isSelected || isHighlighted ? 12 : 7;
+      const isSynthetic = p.data_source === 'synthetic';
+      const dotColor = p.data_mode === 'D' ? '#0D7377' : p.data_mode === 'A' ? '#0284C7' : '#14B8A6';
+      const size = isSelected || isHighlighted ? 12 : isSynthetic ? 9 : 7;
 
+      // Real profiles: solid dot with white border. Synthetic (user-imported): hollow dot with an orange dashed ring.
+      const dotStyle = isSynthetic
+        ? `width: ${size}px; height: ${size}px; background-color: #FFFFFF; border: 2px dashed #EA580C; border-radius: 9999px; box-shadow: 0 1px 4px rgba(234, 88, 12, 0.35);`
+        : `width: ${size}px; height: ${size}px; background-color: ${dotColor}; border: 1.5px solid #FFFFFF; border-radius: 9999px; box-shadow: 0 1px 4px rgba(13, 115, 119, 0.3);`;
       const dotHtml = `
-        <div class="relative flex items-center justify-center cursor-pointer" style="width: 18px; height: 18px;">
+        <div class="relative flex items-center justify-center cursor-pointer" style="width: 18px; height: 18px;" title="${isSynthetic ? 'Synthetic (user-imported) profile' : 'Real Argo profile'}">
           ${isSelected || isHighlighted ? '<div class="absolute inset-0 rounded-full bg-teal-400 opacity-70 marker-pulse"></div>' : ''}
-          <div style="width: ${size}px; height: ${size}px; background-color: ${dotColor}; border: 1.5px solid #FFFFFF; border-radius: 9999px; box-shadow: 0 1px 4px rgba(13, 115, 119, 0.3);"></div>
+          <div style="${dotStyle}"></div>
         </div>
       `;
 
@@ -262,14 +318,19 @@ export const OceanMap: React.FC<OceanMapProps> = ({
             <strong style="color: #0F2238; font-size: 13px;">Float WMO ${p.wmo_number}</strong>
             <span style="font-size: 10px; color: #64748B; font-family: monospace;">Cycle #${p.cycle_number}</span>
           </div>
-          <div style="margin-bottom: 6px;">
+          <div style="margin-bottom: 6px; display: flex; gap: 4px; flex-wrap: wrap;">
             <span style="background: #E1F5F0; color: #0D5C52; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 10px;">
-              ${p.data_mode === 'D' ? 'Delayed-Mode (D)' : 'Real-Time (R)'}
+              ${MODE_LABEL[p.data_mode] ?? p.data_mode}
             </span>
+            ${isSynthetic
+              ? '<span style="background: #FFF7ED; color: #C2410C; border: 1px dashed #EA580C; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10px;">SYNTHETIC · user import</span>'
+              : '<span style="background: #ECFDF5; color: #047857; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 10px;">REAL · Argo file</span>'}
           </div>
           <div style="font-size: 11px; color: #334155; line-height: 1.5; border-top: 1px solid #E2E8F0; padding-top: 5px;">
-            <div>Lat/Lon: ${p.latitude.toFixed(2)}°N, ${p.longitude.toFixed(2)}°E</div>
-            <div>Date: ${p.profile_time.split('T')[0]}</div>
+            <div>Lat/Lon: ${fmtLat(p.latitude)}, ${fmtLon(p.longitude)}</div>
+            <div>Date: ${p.profile_time ? p.profile_time.split('T')[0] : 'unknown'}</div>
+            <div>Position QC: ${p.position_qc === null || p.position_qc === undefined ? 'unknown' : p.position_qc}</div>
+            ${p.source_file ? `<div style="font-size: 10px; color: #64748B; word-break: break-all;">File: ${p.source_file}</div>` : ''}
             ${p.surface_temp ? `<div>Surface Temp: ${p.surface_temp} °C</div>` : ''}
             ${p.surface_salinity ? `<div>Surface Salinity: ${p.surface_salinity} PSU</div>` : ''}
           </div>
@@ -471,7 +532,7 @@ export const OceanMap: React.FC<OceanMapProps> = ({
           {/* Legend Header with Title, Info Icon, and Toggle Switch */}
           <div className="flex items-center justify-between gap-3 pb-2 mb-2 border-b border-slate-100">
             <span className="text-xs font-bold text-[#0F2238]">
-              ARGO Floats (Clustered)
+              ARGO Floats ({profiles.length.toLocaleString()} profiles)
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -507,11 +568,19 @@ export const OceanMap: React.FC<OceanMapProps> = ({
               </span>
             </div>
 
-            {/* Row 2: Individual float */}
+            {/* Row 2: Individual profile (real) */}
             <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-[#0D7377] shrink-0 ml-1 mr-1" />
               <span className="text-xs font-medium text-[#475569]">
-                Individual float
+                Real Argo profile (R / A / D)
+              </span>
+            </div>
+
+            {/* Row 2b: Synthetic profile */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-dashed border-orange-600 shrink-0 ml-[3px] mr-[3px]" />
+              <span className="text-xs font-medium text-[#475569]">
+                Synthetic profile (user import)
               </span>
             </div>
 
@@ -527,7 +596,7 @@ export const OceanMap: React.FC<OceanMapProps> = ({
           {/* Expandable methodology info */}
           {showLegendInfo && (
             <div className="mt-2.5 pt-2 border-t border-slate-100 text-[10px] text-slate-500 leading-relaxed animate-in fade-in duration-150">
-              Clusters group spatial float observations. Click any cluster circle to zoom into that basin.
+              Clusters count distinct floats in each 10° cell of the loaded profiles (shown when a cell has {CLUSTER_MIN_FLOATS}+ floats). Click a cluster to zoom in.
             </div>
           )}
         </div>
@@ -557,6 +626,53 @@ export const OceanMap: React.FC<OceanMapProps> = ({
             <span className="sr-only">Toggle map legend</span>
             <span className="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out translate-x-0" />
           </button>
+        </div>
+      )}
+
+      {/* Loading / error / empty overlays */}
+      {(loading || error || profiles.length === 0) && (
+        <div className="absolute inset-x-0 top-16 z-[1000] flex justify-center pointer-events-none">
+          <div
+            role={error ? 'alert' : 'status'}
+            className={`pointer-events-auto max-w-md rounded-2xl border bg-white/95 backdrop-blur-md shadow-sm px-4 py-3 flex items-start gap-2.5 ${error ? 'border-rose-200' : 'border-[#E2EEF5]'}`}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 text-[#0D7377] animate-spin shrink-0 mt-0.5" />
+                <span className="text-xs text-[#334155]">Loading profiles from the database…</span>
+              </>
+            ) : error ? (
+              <>
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-[#334155]">
+                  <div className="font-semibold text-[#0F2238]">Couldn't load map profiles</div>
+                  <div className="text-[#64748B]">{error}</div>
+                  {onRetry && (
+                    <button onClick={onRetry} className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[#0D7377]">
+                      <RefreshCw className="w-3 h-3" /> Try again
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <SearchX className="w-4 h-4 text-[#64748B] shrink-0 mt-0.5" />
+                <div className="text-xs text-[#334155]">
+                  {totalLoaded === 0 ? (
+                    <>
+                      <div className="font-semibold text-[#0F2238]">No profiles in the database yet</div>
+                      <div className="text-[#64748B]">Load Argo NetCDF files to see floats on the map.</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-semibold text-[#0F2238]">No profiles match the current filters</div>
+                      <div className="text-[#64748B]">{totalLoaded.toLocaleString()} profiles are loaded; clear the search or change the data-mode filter in Settings.</div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
