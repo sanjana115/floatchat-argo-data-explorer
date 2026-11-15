@@ -1,210 +1,201 @@
 import React from 'react';
-import { 
-  BarChart2, 
-  TrendingUp, 
-  CheckCircle2, 
-  Clock, 
-  Database, 
-  Radio, 
-  Layers,
-  Thermometer,
+import {
+  CheckCircle2,
+  Clock,
+  Database,
+  Radio,
   Droplets,
   ShieldCheck,
-  Compass
+  Compass,
+  AlertTriangle,
+  RefreshCw,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { DatabaseStats } from '../../types/argo';
+import { QcSummary } from '../evidence/QcSummary';
 
 interface AnalyticsViewProps {
   stats: DatabaseStats | null;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   onRunQuery: (prompt: string) => void;
 }
 
-export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stats, onRunQuery }) => {
+const fmtDate = (d: string | null | undefined) => (d ? d.slice(0, 10) : '—');
+const share = (n: number | undefined, total: number | undefined) =>
+  total ? `${(((n ?? 0) / total) * 100).toFixed(1)}% of all readings` : '—';
+
+const REGION_QUERY: Record<string, string> = {
+  arabian_sea: 'Show observations from the Arabian Sea',
+  bay_of_bengal: 'Show observations from the Bay of Bengal',
+  near_the_equator: 'What is the average surface temperature near the equator?',
+};
+
+export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ stats, loading = false, error = null, onRetry, onRunQuery }) => {
+  if (error && !stats) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div role="alert" className="bg-white rounded-2xl border border-rose-200 p-6 shadow-sm flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Couldn't load analytics from the database</h2>
+              <p className="text-xs text-slate-500 mt-0.5">{error}</p>
+            </div>
+          </div>
+          {onRetry && (
+            <button onClick={onRetry} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#E1F5F0] text-[#0D5C52] border border-[#B2E4D8]">
+              <RefreshCw className="w-3.5 h-3.5" /> Try again
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const v = (n: number | undefined | null) => (stats && n !== undefined && n !== null ? n.toLocaleString() : loading ? '…' : '—');
+  const empty = stats && stats.total_profiles === 0;
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto overflow-y-auto">
-      {/* Featured Section Stats (21st.dev reference pattern) */}
       <div className="bg-white rounded-2xl border border-[#CBDCE7] p-6 shadow-sm">
         <div className="max-w-2xl mb-6">
           <div className="flex items-center gap-2 text-teal-700 text-xs font-bold uppercase tracking-wider mb-1">
             <Radio className="w-4 h-4 text-teal-600" />
-            Indian Ocean Observational Telemetry
+            Computed from the database
           </div>
-          <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">
-            Comprehensive ARGO Fleet Analytics
-          </h2>
+          <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">ARGO Fleet Analytics</h2>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Global Data Assembly Centre (GDAC) synchronization across the Northern Arabian Sea, Bay of Bengal, Equatorial Wyrtki Jet corridor, and Subtropical Gyre.
+            {stats
+              ? `${stats.source_files.length} Argo file${stats.source_files.length === 1 ? '' : 's'} loaded · profiles dated ${fmtDate(stats.earliest_date)} to ${fmtDate(stats.latest_date)} · ${(stats.profiles_by_source?.real ?? 0).toLocaleString()} real and ${(stats.profiles_by_source?.synthetic ?? 0).toLocaleString()} synthetic profiles.`
+              : loading
+              ? 'Loading figures from the database…'
+              : 'No figures available.'}
           </p>
+          {empty && <p className="text-xs text-amber-700 mt-1">The database has no profiles yet. Load Argo NetCDF files to populate these figures.</p>}
         </div>
 
-        {/* 4 Large Featured Section Stat Panels */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl bg-[#F8FCFD] border border-slate-200/80">
             <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
               <span className="font-semibold uppercase tracking-wider text-[11px]">Profiling Floats</span>
               <Compass className="w-4 h-4 text-teal-600" />
             </div>
-            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">
-              {stats?.total_floats ?? 14}
-            </div>
-            <div className="text-[11px] text-teal-700 font-medium mt-1">
-              100% active telemetry nominal
-            </div>
+            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">{v(stats?.total_floats)}</div>
+            <div className="text-[11px] text-teal-700 font-medium mt-1">Distinct float IDs</div>
           </div>
 
           <div className="p-4 rounded-xl bg-[#F8FCFD] border border-slate-200/80">
             <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-              <span className="font-semibold uppercase tracking-wider text-[11px]">Descent Cycles</span>
+              <span className="font-semibold uppercase tracking-wider text-[11px]">Profiles</span>
               <Database className="w-4 h-4 text-sky-600" />
             </div>
-            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">
-              {stats?.total_profiles ?? 112}
-            </div>
-            <div className="text-[11px] text-sky-700 font-medium mt-1">
-              Avg 10-day vertical cycle cadence
-            </div>
+            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">{v(stats?.total_profiles)}</div>
+            <div className="text-[11px] text-sky-700 font-medium mt-1">{stats ? `${stats.total_cycles.toLocaleString()} cycles · ${stats.total_measurements.toLocaleString()} readings` : ' '}</div>
           </div>
 
           <div className="p-4 rounded-xl bg-[#F8FCFD] border border-slate-200/80">
             <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-              <span className="font-semibold uppercase tracking-wider text-[11px]">Delayed-Mode Obs</span>
+              <span className="font-semibold uppercase tracking-wider text-[11px]">Delayed-Mode Readings</span>
               <CheckCircle2 className="w-4 h-4 text-teal-700" />
             </div>
-            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">
-              {stats?.delayed_mode_obs?.toLocaleString() ?? '—'}
-            </div>
-            <div className="text-[11px] text-teal-800 font-medium mt-1">
-              Full CTD scientific reference recalibration
-            </div>
+            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">{v(stats?.delayed_mode_obs)}</div>
+            <div className="text-[11px] text-teal-800 font-medium mt-1">{stats ? share(stats.delayed_mode_obs, stats.total_measurements) : ' '}</div>
           </div>
 
           <div className="p-4 rounded-xl bg-[#F8FCFD] border border-slate-200/80">
             <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-              <span className="font-semibold uppercase tracking-wider text-[11px]">Real-Time Obs</span>
+              <span className="font-semibold uppercase tracking-wider text-[11px]">Real-Time Readings</span>
               <Clock className="w-4 h-4 text-amber-600" />
             </div>
-            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">
-              {stats?.real_time_obs?.toLocaleString() ?? '—'}
-            </div>
+            <div className="text-3xl font-bold font-mono tabular-nums text-slate-900">{v(stats?.real_time_obs)}</div>
             <div className="text-[11px] text-amber-700 font-medium mt-1">
-              Fast satellite transmission (&lt; 24h)
+              {stats ? `${share(stats.real_time_obs, stats.total_measurements)} · adjusted ${stats.adjusted_obs.toLocaleString()}` : ' '}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Regional Comparison Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Regional Water Mass Comparison */}
+        {/* Regional comparison from stored readings */}
         <div className="bg-white rounded-2xl border border-[#CBDCE7] p-5 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Regional Water-Mass Contrast</h3>
-              <p className="text-xs text-slate-500">Surface salinity & thermocline characteristics</p>
+              <h3 className="text-sm font-bold text-slate-900">Regional Surface Contrast</h3>
+              <p className="text-xs text-slate-500">Surface readings (quality flags 1–2) in each region, using the stored term rules</p>
             </div>
             <Droplets className="w-4 h-4 text-cyan-600" />
           </div>
 
+          {stats?.regions_error && (
+            <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-2">Couldn't compute regional figures: {stats.regions_error}</div>
+          )}
+          {!stats && loading && <div className="text-xs text-slate-500">Loading regional figures…</div>}
+
           <div className="space-y-3 text-xs">
-            {/* Arabian Sea */}
-            <div className="p-3 bg-[#F4F9FC] rounded-xl border border-slate-200/60">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-slate-900">Arabian Sea (North & Central)</span>
-                <span className="font-mono font-bold text-teal-700">36.2 – 36.8 PSU</span>
+            {(stats?.regions ?? []).map((r) => (
+              <div key={r.term_id} className="p-3 bg-[#F4F9FC] rounded-xl border border-slate-200/60">
+                <div className="flex justify-between items-center mb-1 gap-2">
+                  <span className="font-bold text-slate-900">{r.term}</span>
+                  <span className="font-mono font-bold text-teal-700">
+                    {r.avg_surface_salinity !== null ? `avg ${r.avg_surface_salinity} PSU` : 'no surface salinity'}
+                  </span>
+                </div>
+                {r.profiles === 0 ? (
+                  <p className="text-[11px] text-slate-500">No stored profiles fall inside this region.</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 font-mono text-[11px] text-slate-600">
+                    <span>Profiles: <b className="text-slate-800">{r.profiles}</b></span>
+                    <span>Floats: <b className="text-slate-800">{r.floats}</b></span>
+                    <span>Surface readings: <b className="text-slate-800">{r.surface_readings}</b></span>
+                    <span>Avg surface temp: <b className="text-slate-800">{r.avg_surface_temperature ?? '—'} °C</b></span>
+                    <span className="col-span-2">
+                      Salinity range: <b className="text-slate-800">{r.min_surface_salinity ?? '—'} – {r.max_surface_salinity ?? '—'} PSU</b>
+                    </span>
+                  </div>
+                )}
+                <p className="mt-1 text-[10px] text-slate-500 leading-snug">
+                  {r.rule_text} <span className="font-semibold text-amber-700">PROJECT ASSUMPTION</span>
+                </p>
+                <button onClick={() => onRunQuery(REGION_QUERY[r.term_id] ?? `Show observations from ${r.term}`)} className="mt-2 text-[11px] font-semibold text-teal-700 hover:text-teal-900">
+                  Ask about {r.term} →
+                </button>
               </div>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Excess evaporation creates dense, salty surface water that sinks to form Arabian Sea High Salinity Water (ASHSW).
-              </p>
-              <button
-                onClick={() => onRunQuery('Show observations from the Arabian Sea')}
-                className="mt-2 text-[11px] font-semibold text-teal-700 hover:text-teal-900"
-              >
-                Inspect Arabian Sea profiles →
-              </button>
-            </div>
-
-            {/* Bay of Bengal */}
-            <div className="p-3 bg-[#F4F9FC] rounded-xl border border-slate-200/60">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-slate-900">Bay of Bengal (River Plume)</span>
-                <span className="font-mono font-bold text-sky-700">31.5 – 33.5 PSU</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Ganges-Brahmaputra and Irrawaddy river discharge establishes a buoyant, fresh surface layer and barrier layer dynamics.
-              </p>
-              <button
-                onClick={() => onRunQuery('Show observations from the Bay of Bengal')}
-                className="mt-2 text-[11px] font-semibold text-teal-700 hover:text-teal-900"
-              >
-                Inspect Bay of Bengal profiles →
-              </button>
-            </div>
-
-            {/* Equatorial Jet */}
-            <div className="p-3 bg-[#F4F9FC] rounded-xl border border-slate-200/60">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-slate-900">Equatorial Indian Ocean (Wyrtki Jet)</span>
-                <span className="font-mono font-bold text-blue-700">34.6 – 35.0 PSU</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Semi-annual equatorial eastward jets drive massive mass transport between western and eastern basins.
-              </p>
-              <button
-                onClick={() => onRunQuery('Show temperature profiles in the Indian Ocean')}
-                className="mt-2 text-[11px] font-semibold text-teal-700 hover:text-teal-900"
-              >
-                Inspect Equatorial profiles →
-              </button>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Quality Control & Provenance Protocol */}
+        {/* QC flags in the database */}
         <div className="bg-white rounded-2xl border border-[#CBDCE7] p-5 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">ARGO QC Verification Protocol</h3>
-              <p className="text-xs text-slate-500">Standardized flags applied to PRES, TEMP, and PSAL</p>
+              <h3 className="text-sm font-bold text-slate-900">Quality-Control Flags in the Database</h3>
+              <p className="text-xs text-slate-500">Argo flags on pressure, temperature, salinity and position</p>
             </div>
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
 
-          <div className="space-y-2.5 text-xs">
-            <div className="flex items-start gap-3 p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-200/60">
-              <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0">
-                1
-              </span>
-              <div>
-                <strong className="text-emerald-950 block">Good Quality (QC = 1)</strong>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Passed all automated real-time tests (pressure inversion check, global range, spike check, gradient test, stuck value test).
-                </p>
-              </div>
-            </div>
+          {stats?.qc_error && (
+            <div role="alert" className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-2">Couldn't compute QC summary: {stats.qc_error}</div>
+          )}
+          {!stats && loading && <div className="text-xs text-slate-500">Loading QC summary…</div>}
 
-            <div className="flex items-start gap-3 p-2.5 bg-blue-50/50 rounded-xl border border-blue-200/60">
-              <span className="w-6 h-6 rounded-lg bg-blue-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0">
-                2
-              </span>
-              <div>
-                <strong className="text-blue-950 block">Probably Good (QC = 2)</strong>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Values within climatological limits with minor sensor noise; retained by default per FloatChat specification.
-                </p>
-              </div>
+          {stats?.qc && (
+            <div className="space-y-3">
+              <QcSummary title="Temperature (TEMP_QC)" tally={stats.qc.temp_qc} />
+              <QcSummary title="Salinity (PSAL_QC)" tally={stats.qc.psal_qc} />
+              <QcSummary title="Pressure (PRES_QC)" tally={stats.qc.pres_qc} />
+              <QcSummary title="Position (POSITION_QC)" tally={stats.qc.position_qc} unit="profiles" />
             </div>
+          )}
 
-            <div className="flex items-start gap-3 p-2.5 bg-amber-50/50 rounded-xl border border-amber-200/60">
-              <span className="w-6 h-6 rounded-lg bg-amber-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0">
-                3
-              </span>
-              <div>
-                <strong className="text-amber-950 block">Potentially Correctable (QC = 3)</strong>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Sensor drift detected; corrected during delayed-mode processing against reference shipboard CTD databases.
-                </p>
-              </div>
-            </div>
+          <div className="flex items-start gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 text-[11px] text-slate-600">
+            <SlidersHorizontal className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>
+              A missing flag, or flag 0 (no QC performed), is counted as <b>unknown</b> — never as good. Real-time (R) values use the raw
+              fields; adjusted (A) and delayed-mode (D) values use the adjusted fields and their flags.
+            </span>
           </div>
         </div>
       </div>
