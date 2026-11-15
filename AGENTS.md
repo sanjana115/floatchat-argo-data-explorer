@@ -34,6 +34,9 @@ use the editor.
 - AI-generated SQL only runs through `public.floatchat_exec_select` (read-only role `floatchat_readonly`, read-only transaction, 8s timeout, service_role only); never execute LLM SQL any other way.
 - The executed SQL is the re-serialised AST from `src/lib/floatchat/sqlValidator.ts`, so what was validated is exactly what runs; keep validator, prompt rules and fallback SQL in sync.
 - Pipeline logic stays in pure modules under `src/lib/floatchat/` (terms, validator, loop, provenance, answer guard) so it is unit-testable; server files only wire I/O.
-- Term meanings live in `public.term_definitions` (NULL `threshold_source` = PROJECT ASSUMPTION); `src/test/floatchat/termDefinitions.fixture.ts` must mirror it (the live test checks this).
+- Term meanings live in `public.term_definitions` columns `term`, `rule_text`, `sql_fragment`, `source_note` (older label/plain_language/sql_condition/threshold_source are deprecated); a source_note containing PROJECT ASSUMPTION (or empty) marks the threshold as an assumption. `src/test/floatchat/termDefinitions.fixture.ts` must mirror the table (the live test checks this).
+- Dashboard figures read precomputed materialized views (`profile_level_summary`, `qc_flag_counts`); call `floatchat_refresh_summaries()` (service role) after any data load or import so they stay in step.
+- QC flags are summarised by `src/lib/floatchat/qc.ts`; a missing flag or flag 0 is always `unknown`, never good.
+- `query_log` is written via `log_id`, `asked_at`, `generated_sql`, `validator_ok`, `attempt_count`, `execution_ms`, `error_message` (id/created_at/final_sql/error are deprecated).
 - Argo data is loaded with `scripts/ingest_argo.py` from NetCDF files; R mode uses raw values, A/D mode uses *_ADJUSTED values and flags.
 - The original UI lives in `src/floatchat/` and is loaded client-only from `/` because Leaflet/Plotly need `window`.
