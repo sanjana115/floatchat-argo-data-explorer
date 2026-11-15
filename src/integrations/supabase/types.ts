@@ -119,6 +119,13 @@ export type Database = {
             foreignKeyName: "measurements_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "profile_level_summary"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "measurements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["profile_id"]
           },
@@ -340,19 +347,40 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cycles_float_id_fkey"
-            columns: ["float_id"]
+            columns: ["wmo_number"]
             isOneToOne: false
             referencedRelation: "floats"
             referencedColumns: ["float_id"]
           },
           {
             foreignKeyName: "cycles_float_id_fkey"
-            columns: ["wmo_number"]
+            columns: ["float_id"]
             isOneToOne: false
             referencedRelation: "floats"
             referencedColumns: ["float_id"]
           },
         ]
+      }
+      profile_level_summary: {
+        Row: {
+          max_depth: number | null
+          n_levels: number | null
+          profile_id: string | null
+          surface_salinity: number | null
+          surface_temp: number | null
+        }
+        Relationships: []
+      }
+      qc_flag_counts: {
+        Row: {
+          kind: string | null
+          n: number | null
+          position_qc: number | null
+          pres_qc: number | null
+          psal_qc: number | null
+          temp_qc: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -361,6 +389,7 @@ export type Database = {
         Returns: Json
       }
       floatchat_qc_summary: { Args: never; Returns: Json }
+      floatchat_refresh_summaries: { Args: never; Returns: undefined }
       floatchat_region_summary: { Args: never; Returns: Json }
       floatchat_stats: { Args: never; Returns: Json }
     }
