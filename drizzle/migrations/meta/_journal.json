@@ -8,6 +8,13 @@
       "when": 1794738788254,
       "tag": "0000_floatchat_argo_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794740763855,
+      "tag": "0001_user_schema_columns_and_dashboard_summaries",
+      "breakpoints": true
     }
   ]
 }

@@ -131,6 +131,7 @@ export type Database = {
           data_mode: string
           data_source: string
           direction: string | null
+          ingested_at: string
           juld_qc: number | null
           latitude: number | null
           longitude: number | null
@@ -146,6 +147,7 @@ export type Database = {
           data_mode: string
           data_source: string
           direction?: string | null
+          ingested_at?: string
           juld_qc?: number | null
           latitude?: number | null
           longitude?: number | null
@@ -161,6 +163,7 @@ export type Database = {
           data_mode?: string
           data_source?: string
           direction?: string | null
+          ingested_at?: string
           juld_qc?: number | null
           latitude?: number | null
           longitude?: number | null
@@ -184,14 +187,20 @@ export type Database = {
         Row: {
           answer: string | null
           answer_path: string | null
+          asked_at: string
+          attempt_count: number | null
           attempts: Json | null
           created_at: string
           duration_ms: number | null
           error: string | null
+          error_message: string | null
+          execution_ms: number | null
           execution_path: string | null
           fallback_reason: string | null
           final_sql: string | null
+          generated_sql: string | null
           id: string
+          log_id: string
           model: string | null
           provenance: Json | null
           provenance_sql: string | null
@@ -199,18 +208,25 @@ export type Database = {
           resolved_terms: Json | null
           row_count: number | null
           status: string
+          validator_ok: boolean | null
         }
         Insert: {
           answer?: string | null
           answer_path?: string | null
+          asked_at?: string
+          attempt_count?: number | null
           attempts?: Json | null
           created_at?: string
           duration_ms?: number | null
           error?: string | null
+          error_message?: string | null
+          execution_ms?: number | null
           execution_path?: string | null
           fallback_reason?: string | null
           final_sql?: string | null
+          generated_sql?: string | null
           id?: string
+          log_id?: string
           model?: string | null
           provenance?: Json | null
           provenance_sql?: string | null
@@ -218,18 +234,25 @@ export type Database = {
           resolved_terms?: Json | null
           row_count?: number | null
           status?: string
+          validator_ok?: boolean | null
         }
         Update: {
           answer?: string | null
           answer_path?: string | null
+          asked_at?: string
+          attempt_count?: number | null
           attempts?: Json | null
           created_at?: string
           duration_ms?: number | null
           error?: string | null
+          error_message?: string | null
+          execution_ms?: number | null
           execution_path?: string | null
           fallback_reason?: string | null
           final_sql?: string | null
+          generated_sql?: string | null
           id?: string
+          log_id?: string
           model?: string | null
           provenance?: Json | null
           provenance_sql?: string | null
@@ -237,6 +260,7 @@ export type Database = {
           resolved_terms?: Json | null
           row_count?: number | null
           status?: string
+          validator_ok?: boolean | null
         }
         Relationships: []
       }
@@ -247,7 +271,11 @@ export type Database = {
           phrases: string[]
           plain_language: string
           required_tables: string[]
+          rule_text: string
+          source_note: string
           sql_condition: string
+          sql_fragment: string
+          term: string
           term_id: string
           threshold_source: string | null
           updated_at: string
@@ -258,7 +286,11 @@ export type Database = {
           phrases: string[]
           plain_language: string
           required_tables: string[]
+          rule_text: string
+          source_note: string
           sql_condition: string
+          sql_fragment: string
+          term: string
           term_id: string
           threshold_source?: string | null
           updated_at?: string
@@ -269,7 +301,11 @@ export type Database = {
           phrases?: string[]
           plain_language?: string
           required_tables?: string[]
+          rule_text?: string
+          source_note?: string
           sql_condition?: string
+          sql_fragment?: string
+          term?: string
           term_id?: string
           threshold_source?: string | null
           updated_at?: string
@@ -324,6 +360,8 @@ export type Database = {
         Args: { max_rows?: number; query: string }
         Returns: Json
       }
+      floatchat_qc_summary: { Args: never; Returns: Json }
+      floatchat_region_summary: { Args: never; Returns: Json }
       floatchat_stats: { Args: never; Returns: Json }
     }
     Enums: {
