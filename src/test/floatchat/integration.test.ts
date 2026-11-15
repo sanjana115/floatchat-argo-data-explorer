@@ -124,7 +124,15 @@ describe.skipIf(!live)("/api/ask end-to-end (live app + LLM)", () => {
     const m = body.provenance.modeSummary;
     expect(m.R + m.A + m.D).toBe(body.provenance.profileCount);
     const log = await fetch(`${URL}/rest/v1/query_log?log_id=eq.${body.queryLogId}&select=question,execution_path,generated_sql,validator_ok,attempt_count,row_count,execution_ms,status,error_message`, { headers: headers() }).then((r) => r.json());
-    expect(log[0]).toMatchObject({ question, execution_path: body.executionPath, final_sql: body.sql, status: "ok" });
+    console.log("query_log row:", JSON.stringify(log[0]));
+    expect(log[0]).toMatchObject({ question, execution_path: body.executionPath, generated_sql: body.sql, validator_ok: true, status: "ok", error_message: null });
+    expect(log[0].attempt_count).toBe(body.attempts.length);
+    expect(log[0].row_count).toBe(body.rows.length);
+    expect(typeof log[0].execution_ms).toBe("number");
+    // Evidence fields the dashboard shows
+    expect(body.validation).toMatchObject({ ok: true, statement: "SELECT" });
+    expect(body.provenance.dataSourceSummary.real + body.provenance.dataSourceSummary.synthetic).toBe(body.provenance.profileCount);
+    expect(body.provenance.positionQc.total).toBe(body.provenance.profileCount);
   }, 120000);
 
   it("rejects an empty question", async () => {
