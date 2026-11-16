@@ -31,6 +31,7 @@ use the editor.
 
 ## FloatChat architecture
 - `/api/ask` is a TanStack server route (`src/routes/api/ask.ts` → `src/server/floatchat/ask.server.ts`), not a Supabase Edge Function — this stack runs server code on the Worker.
+- `/api/ask` accepts `mode: "rules"` (Settings → Query Method) to skip the LLM for both SQL and answer and run the rule-based fallback; it is the only way to exercise that path on demand, so keep it.
 - AI-generated SQL only runs through `public.floatchat_exec_select` (read-only role `floatchat_readonly`, read-only transaction, 8s timeout, service_role only); never execute LLM SQL any other way.
 - The executed SQL is the re-serialised AST from `src/lib/floatchat/sqlValidator.ts`, so what was validated is exactly what runs; keep validator, prompt rules and fallback SQL in sync.
 - Pipeline logic stays in pure modules under `src/lib/floatchat/` (terms, validator, loop, provenance, answer guard) so it is unit-testable; server files only wire I/O.
