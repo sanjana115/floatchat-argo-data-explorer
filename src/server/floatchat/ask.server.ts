@@ -19,7 +19,12 @@ import { summarizeRowsQc } from "@/lib/floatchat/qc";
 export const MAX_LLM_ATTEMPTS = 3;
 type Row = Record<string, unknown>;
 
-const BodySchema = z.object({ question: z.string().trim().min(1, "Question is required").max(500, "Question is too long (max 500 characters)") });
+const BodySchema = z.object({
+  question: z.string().trim().min(1, "Question is required").max(500, "Question is too long (max 500 characters)"),
+  /** "rules" skips the LLM entirely and uses the rule-based fallback (chosen in Settings). */
+  mode: z.enum(["auto", "rules"]).optional().default("auto"),
+});
+export const RULES_MODE_REASON = "Rule-based mode was chosen in Settings, so the AI was not asked to write the query or the answer.";
 
 async function execSelect(sql: string, maxRows: number): Promise<ExecResult> {
   const t = Date.now();
@@ -83,6 +88,7 @@ export async function handleAsk(request: Request): Promise<Response> {
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) return json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, 400);
   const question = parsed.data.question;
+  const rulesOnly = parsed.data.mode === "rules";
 
   const attempts: Attempt[] = [];
   let terms: ResolvedTerm[] = [];
@@ -127,7 +133,10 @@ export async function handleAsk(request: Request): Promise<Response> {
     const apiKey = process.env["LOVABLE_API_KEY"];
     let gw: Gateway | null = null;
     let llmUsable = Boolean(apiKey);
-    if (!apiKey) fallbackReason = "LLM unavailable: LOVABLE_API_KEY is not configured.";
+    if (rulesOnly) {
+      fallbackReason = RULES_MODE_REASON;
+      llmUsable = false;
+    } else if (!apiKey) fallbackReason = "LLM unavailable: LOVABLE_API_KEY is not configured.";
     else {
       gw = createGateway(apiKey);
       modelUsed = FLOATCHAT_MODEL;
@@ -199,7 +208,7 @@ export async function handleAsk(request: Request): Promise<Response> {
         }
       }
     } else {
-      answerNote = "LLM not used for the answer (unavailable for this request).";
+      answerNote = rulesOnly ? "Rule-based mode: the answer was written from a fixed template." : "LLM not used for the answer (unavailable for this request).";
     }
     if (answerPath === "TEMPLATE") answer = templateAnswer(facts);
 

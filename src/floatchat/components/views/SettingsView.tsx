@@ -6,6 +6,8 @@ interface SettingsViewProps {
   onToggleQcStrict: (strict: boolean) => void;
   selectedMode: string;
   onSelectMode: (mode: string) => void;
+  queryMethod: 'auto' | 'rules';
+  onSelectQueryMethod: (method: 'auto' | 'rules') => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -13,6 +15,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onToggleQcStrict,
   selectedMode,
   onSelectMode,
+  queryMethod,
+  onSelectQueryMethod,
 }) => {
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto overflow-y-auto">
@@ -73,6 +77,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 }`}
               >
                 {m === 'ALL' ? 'All Data' : m === 'D' ? 'Delayed Only (D)' : 'Real-Time Only (R)'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Query method: AI with rule-based backup, or rule-based only */}
+        <div className="bg-white p-5 rounded-xl border border-[#E2E8F0] shadow-2xs flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">
+              Query Method
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+              By default the AI writes each query and the rule-based method takes over only if it fails. Choose rule-based only to skip the AI; answers then carry the RULE_BASED_FALLBACK badge.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 p-1 bg-[#F4F9FC] rounded-lg border border-[#E2E8F0] text-xs">
+            {(['auto', 'rules'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => onSelectQueryMethod(m)}
+                aria-pressed={queryMethod === m}
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                  queryMethod === m
+                    ? 'bg-teal-600 text-white shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {m === 'auto' ? 'AI + Rule-Based Backup' : 'Rule-Based Only'}
               </button>
             ))}
           </div>

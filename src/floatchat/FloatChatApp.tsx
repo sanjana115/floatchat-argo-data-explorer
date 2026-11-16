@@ -37,6 +37,7 @@ export default function FloatChatApp() {
   const [selectedBasin, setSelectedBasin] = useState('all');
   const [selectedMode, setSelectedMode] = useState('ALL');
   const [qcFilterStrict, setQcFilterStrict] = useState(false);
+  const [queryMethod, setQueryMethod] = useState<'auto' | 'rules'>('auto');
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -165,7 +166,7 @@ export default function FloatChatApp() {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: text }),
+        body: JSON.stringify({ question: text, mode: queryMethod }),
       });
 
       let data: any;
@@ -409,6 +410,8 @@ export default function FloatChatApp() {
             <SettingsView
               qcFilterStrict={qcFilterStrict}
               onToggleQcStrict={setQcFilterStrict}
+              queryMethod={queryMethod}
+              onSelectQueryMethod={setQueryMethod}
               selectedMode={selectedMode}
               onSelectMode={setSelectedMode}
             />
