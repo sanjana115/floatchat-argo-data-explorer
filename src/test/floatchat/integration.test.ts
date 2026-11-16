@@ -135,6 +135,34 @@ describe.skipIf(!live)("/api/ask end-to-end (live app + LLM)", () => {
     expect(body.provenance.positionQc.total).toBe(body.provenance.profileCount);
   }, 120000);
 
+  it("rule-based mode runs the fallback end to end and logs why", async () => {
+    if (!reachable) return;
+    const question = "Compare salinity between the Arabian Sea and Bay of Bengal";
+    const r = await fetch(`${BASE}/api/ask`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, mode: "rules" }) });
+    const body = await r.json();
+    console.log(JSON.stringify({
+      question, executionPath: body.executionPath, fallbackReason: body.fallbackReason, answerPath: body.answerPath,
+      attempts: body.attempts?.map((a: { attempt: unknown; source: string; stage: string }) => `${a.attempt}:${a.source}:${a.stage}`),
+      validation: body.validation, interpretations: body.interpretations, sql: body.sql, rows: body.rows, answer: body.answer,
+      provenance: body.provenance && { profileCount: body.provenance.profileCount, floatCount: body.provenance.floatCount, modeSummary: body.provenance.modeSummary, method: body.provenance.method },
+      queryLogId: body.queryLogId,
+    }, null, 2));
+    expect(r.status).toBe(200);
+    expect(body.executionPath).toBe("RULE_BASED_FALLBACK");
+    expect(body.fallbackReason).toMatch(/Rule-based mode/);
+    expect(body.attempts).toHaveLength(1);
+    expect(body.attempts[0]).toMatchObject({ attempt: "fallback", source: "RULE_BASED_FALLBACK", stage: "ok" });
+    expect(body.validation).toMatchObject({ ok: true, passedOn: "fallback", llmAttempts: 0 });
+    expect(body.answerPath).toBe("TEMPLATE");
+    expect(validateSql(body.sql).ok).toBe(true);
+    expect(body.rows.map((x: { region: string }) => x.region).sort()).toEqual(["Arabian Sea", "Bay of Bengal"]);
+    expect(checkAnswer(body.answer, (await import("@/lib/floatchat/answer")).computeFacts(body.rows, body.provenance), body.interpretations)).toBeNull();
+    const log = await fetch(`${URL}/rest/v1/query_log?log_id=eq.${body.queryLogId}&select=execution_path,fallback_reason,validator_ok,attempt_count,status,model`, { headers: headers() }).then((x) => x.json());
+    console.log("query_log row:", JSON.stringify(log[0]));
+    expect(log[0]).toMatchObject({ execution_path: "RULE_BASED_FALLBACK", validator_ok: true, attempt_count: 1, status: "ok", model: null });
+    expect(log[0].fallback_reason).toMatch(/Rule-based mode/);
+  }, 60000);
+
   it("rejects an empty question", async () => {
     if (!reachable) return;
     const { status, body } = await ask("   ");

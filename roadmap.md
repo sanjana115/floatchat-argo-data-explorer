@@ -11,3 +11,5 @@
 - [x] Schema columns per user spec (profiles.ingested_at, term_definitions term/rule_text/sql_fragment/source_note, query_log log_id/asked_at/generated_sql/validator_ok/attempt_count/execution_ms/error_message)
 - [x] Re-seed confirmed term values, all labelled PROJECT ASSUMPTION
 - [x] Dashboard: interpretation lines, path badge, validation status, provenance, mode + QC summary (missing = unknown), real/synthetic on markers + provenance, DB metric cards, empty/error states
+- [x] Run rule-based fallback end to end via /api/ask (Settings → Rule-Based Only) and show its badge
+- [ ] Answer readability brief (uploaded) — waiting on user confirmation
