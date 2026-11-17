@@ -3,6 +3,7 @@
 // Audience: a non-expert. Main text = answer first, one line of context, how a vague term was read,
 // and short notes (capped results, real-time data, imported data). IDs, QC and modes stay in the panels.
 import type { Provenance } from "./provenance";
+import { DEFAULT_MAX_LIMIT } from "./sqlValidator";
 
 const ID_COLUMNS = new Set(["profile_id", "float_id", "wmo_number", "cycle_number", "cycle_id", "measurement_id", "level_index", "source_file"]);
 const isHidden = (col: string) => ID_COLUMNS.has(col.toLowerCase()) || /_qc$/i.test(col);
@@ -69,7 +70,7 @@ export function formatDate(iso: string): string {
 
 const plainValue = (col: string, v: unknown) => (col.toLowerCase() === "data_mode" && typeof v === "string" ? MODE_PLAIN[v] ?? v : v);
 
-export function computeFacts(rows: Record<string, unknown>[], prov: Provenance | null, opts: { limit?: number | null } = {}): Facts {
+export function computeFacts(rows: Record<string, unknown>[], prov: Provenance | null, opts: { limit?: number | null; isAggregate?: boolean; maxLimit?: number } = {}): Facts {
   const cols = rows[0] ? Object.keys(rows[0]) : [];
   const numeric: NumericFact[] = [];
   const categorical: Facts["categorical"] = [];
@@ -129,7 +130,9 @@ export function computeFacts(rows: Record<string, unknown>[], prov: Provenance |
     dateRange,
     sampleRows,
     groups,
-    capped: limit !== null && rows.length > 0 && rows.length >= limit,
+    // A summary query that asked for N rows (e.g. LIMIT 1 for "the highest") is not capped; only listings,
+    // or summaries that hit the enforced maximum, are.
+    capped: limit !== null && rows.length > 0 && rows.length >= limit && (!opts.isAggregate || limit >= (opts.maxLimit ?? DEFAULT_MAX_LIMIT)),
     rowLimit: limit,
     rowsAreReadings: rows.length > 0 && cols.some((c) => c.toLowerCase() === "pressure"),
     realtimeProfiles: prov?.modeSummary?.R ?? 0,

@@ -35,6 +35,14 @@ describe("facts are computed only from the returned rows", () => {
     expect(computeFacts(rows, prov, { limit: 3 }).capped).toBe(true);
     expect(computeFacts(rows, prov, { limit: 500 }).capped).toBe(false);
   });
+  it("does not mark a summary that asked for N rows as capped", () => {
+    const top = [{ average_surface_temperature: 28.83 }];
+    expect(computeFacts(top, null, { limit: 1, isAggregate: true }).capped).toBe(false);
+  });
+  it("marks a summary as capped when it hits the 500-row maximum", () => {
+    const many = Array.from({ length: 500 }, (_, i) => ({ float_id: String(i), highest_salinity: 35 }));
+    expect(computeFacts(many, null, { limit: 500, isAggregate: true }).capped).toBe(true);
+  });
 });
 
 describe("answer guard", () => {

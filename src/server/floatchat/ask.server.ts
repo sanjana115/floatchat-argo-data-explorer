@@ -184,7 +184,7 @@ export async function handleAsk(request: Request): Promise<Response> {
     const provenance = await buildProvenance(final.v, final.rows);
 
     // 4) Answer text from computed facts only.
-    const facts = computeFacts(final.rows, provenance, { limit: final.v.limit });
+    const facts = computeFacts(final.rows, provenance, { limit: final.v.limit, isAggregate: final.v.isAggregate });
     const answerCtx = { question, terms };
     let answer = "";
     let answerPath: "LLM" | "TEMPLATE" = "TEMPLATE";
