@@ -1,5 +1,7 @@
-// Public read endpoints for the map/dashboard. Uses the publishable key (RLS: public read on Argo tables).
+// Read endpoints for the map/dashboard. Argo tables are not readable by anon/authenticated, so these fixed,
+// read-only queries use the server-only service client; term_definitions stays on the publishable key.
 import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
 import { tallyQc } from "@/lib/floatchat/qc";
 
@@ -37,7 +39,7 @@ export async function getStats() {
 }
 
 async function computeStats() {
-  const sb = publicClient();
+  const sb = supabaseAdmin;
   const [base, qc, regions] = await Promise.all([
     sb.rpc("floatchat_stats"),
     sb.rpc("floatchat_qc_summary"),
@@ -83,7 +85,7 @@ async function computeStats() {
 }
 
 export async function getMapProfiles() {
-  const sb = publicClient();
+  const sb = supabaseAdmin;
   const out: unknown[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb
@@ -102,7 +104,7 @@ export async function getMapProfiles() {
 }
 
 export async function getFloatTrack(floatId: string) {
-  const { data, error } = await publicClient()
+  const { data, error } = await supabaseAdmin
     .from("map_profiles")
     .select("cycle_number, profile_id, latitude, longitude, profile_time, data_mode")
     .eq("float_id", floatId)
@@ -112,7 +114,7 @@ export async function getFloatTrack(floatId: string) {
 }
 
 export async function getProfileDetails(profileId: string) {
-  const sb = publicClient();
+  const sb = supabaseAdmin;
   const { data: profile, error } = await sb.from("map_profiles").select("*").eq("profile_id", profileId).maybeSingle();
   if (error) throw new Error(error.message);
   if (!profile) return null;
