@@ -184,12 +184,13 @@ export async function handleAsk(request: Request): Promise<Response> {
     const provenance = await buildProvenance(final.v, final.rows);
 
     // 4) Answer text from computed facts only.
-    const facts = computeFacts(final.rows, provenance);
+    const facts = computeFacts(final.rows, provenance, { limit: final.v.limit });
+    const answerCtx = { question, terms };
     let answer = "";
     let answerPath: "LLM" | "TEMPLATE" = "TEMPLATE";
     let answerNote: string | null = null;
     if (gw && llmUsable) {
-      const messages: ModelMessage[] = [{ role: "user", content: answerUserPrompt(question, interpretation, facts) }];
+      const messages: ModelMessage[] = [{ role: "user", content: answerUserPrompt(question, interpretation, facts, terms) }];
       for (let i = 0; i < 2 && answerPath !== "LLM"; i++) {
         try {
           const text = await streamToText(gw, ANSWER_INSTRUCTIONS, messages, request.signal);
@@ -210,7 +211,7 @@ export async function handleAsk(request: Request): Promise<Response> {
     } else {
       answerNote = rulesOnly ? "Rule-based mode: the answer was written from a fixed template." : "LLM not used for the answer (unavailable for this request).";
     }
-    if (answerPath === "TEMPLATE") answer = templateAnswer(facts);
+    if (answerPath === "TEMPLATE") answer = templateAnswer(facts, answerCtx);
 
     const measurementQc = summarizeRowsQc(final.rows);
     const provenanceOut = {

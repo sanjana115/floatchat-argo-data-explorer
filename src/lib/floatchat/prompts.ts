@@ -1,5 +1,5 @@
 import type { ResolvedTerm } from "./termResolver";
-import type { Facts } from "./answer";
+import { termsSentence, notesSentence, type Facts, type AnswerTerm } from "./answer";
 import { DEFAULT_MAX_LIMIT } from "./sqlValidator";
 
 export const SQL_INSTRUCTIONS = `You write exactly one PostgreSQL SELECT statement for FloatChat, a read-only explorer of real Argo float ocean profiles.
@@ -33,14 +33,28 @@ export function sqlUserPrompt(question: string, terms: ResolvedTerm[]): string {
   return `Question: ${question}\n\nTerm definitions to apply:\n${defs}\n\nWrite the single SELECT now.`;
 }
 
-export const ANSWER_INSTRUCTIONS = `You explain ocean measurement results to a non-expert.
-Write 2 to 4 short, plain-language sentences. Put the direct answer first, then say how many profiles and floats it is based on when FACTS gives those counts.
-Use only numbers that appear in FACTS (you may round them to fewer decimals). Do not calculate new numbers, percentages or differences.
-Never mention float numbers, profile or cycle identifiers, WMO, SQL, databases, queries, rows, QC flags, data-mode letters, "dbar" or "PSU". Say "decibars" for pressure, °C for temperature, and give salinity as a plain number.
-If FACTS shows zero results, say nothing matched and suggest widening the search.
-If the question asks "which floats", say how many floats matched and that their identifiers are listed in the evidence panel.
+export const ANSWER_INSTRUCTIONS = `You explain ocean measurement results to someone with no oceanography background. They must understand the answer on first read.
+Write 2 to 4 short, plain sentences. No lists, headings or markdown.
+1. First sentence: the direct answer to the question.
+2. Then at most one sentence of context, e.g. how many profiles (sets of readings taken down through the water) and floats it is based on, when FACTS gives those counts.
+3. If TERMS SENTENCE is given, include it (you may shorten it) so the reader knows how a vague phrase was read.
+4. If REQUIRED NOTE is given, include it in one short sentence; keep its key words ("first N", "real-time" with "final quality review", "imported").
+Numbers: use only numbers that appear in FACTS, TERMS SENTENCE or REQUIRED NOTE, exactly as given. FACTS values are already rounded (temperature 1 decimal, salinity 2 decimals); do not add decimals, compute differences, percentages or new averages.
+Words: say "salinity (how salty the water is)" the first time salinity appears. Give depth as "about X metres" using the pressure values (1 decibar is about 1 metre). Use °C for temperature.
+Never mention float numbers, profile or cycle identifiers, WMO, SQL, databases, queries, rows, quality flags or QC, data-mode letters or the words "data mode", "cycle", "dbar" or "PSU". Describe data modes in plain words ("real-time", "adjusted by the data team", "fully reviewed by experts").
+Do not explain causes (no "because", "due to", "caused by") and do not add scientific facts or trends that are not computed in FACTS.
+If FACTS shows zero results, say nothing matched and suggest one way to rephrase the question.
+If the question asks "which floats", say how many floats matched and that they are listed in the evidence panel.
 Reply with the sentences only.`;
 
-export function answerUserPrompt(question: string, interpretation: string[], facts: Facts): string {
-  return `Question: ${question}\n\nHow the question was interpreted:\n${interpretation.length ? interpretation.map((l) => `- ${l}`).join("\n") : "- (no special terms)"}\n\nFACTS (computed from the returned results):\n${JSON.stringify(facts)}`;
+export function answerUserPrompt(question: string, interpretation: string[], facts: Facts, terms: AnswerTerm[] = []): string {
+  const termLine = termsSentence(terms);
+  const note = notesSentence(facts);
+  return [
+    `Question: ${question}`,
+    `How the question was interpreted:\n${interpretation.length ? interpretation.map((l) => `- ${l}`).join("\n") : "- (no special terms)"}`,
+    `TERMS SENTENCE: ${termLine ?? "(none)"}`,
+    `REQUIRED NOTE: ${note ?? "(none)"}`,
+    `FACTS (computed from the returned results):\n${JSON.stringify(facts)}`,
+  ].join("\n\n");
 }

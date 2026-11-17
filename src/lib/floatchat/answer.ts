@@ -263,7 +263,7 @@ function shortMeaning(t: AnswerTerm): string {
   return /^[A-Z][a-z]/.test(m) ? m.charAt(0).toLowerCase() + m.slice(1) : m;
 }
 
-function termsSentence(terms: AnswerTerm[]): string | null {
+export function termsSentence(terms: AnswerTerm[]): string | null {
   if (terms.length === 0) return null;
   const assumption = terms.some((t) => t.isProjectAssumption);
   const full = `I took ${joinAnd(terms.map((t) => `"${t.matchedText}" to mean ${shortMeaning(t)}`))}${assumption ? (terms.length > 1 ? ", working definitions chosen for this app" : ", a working definition chosen for this app") : ""}.`;
@@ -271,7 +271,7 @@ function termsSentence(terms: AnswerTerm[]): string | null {
   return `I used ${assumption ? "working definitions chosen for this app" : "fixed definitions"} for ${joinAnd(terms.map((t) => `"${t.matchedText}"`))}, shown just below this answer.`;
 }
 
-function notesSentence(f: Facts): string | null {
+export function notesSentence(f: Facts): string | null {
   if (f.rowCount === 0) return null;
   const parts: string[] = [];
   if (f.capped) parts.push(`this covers only the first ${f.rowCount.toLocaleString("en-US")} ${f.rowsAreReadings ? "readings" : "results"}`);
