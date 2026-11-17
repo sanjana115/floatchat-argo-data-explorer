@@ -132,7 +132,7 @@ describe("rule-based answer wording", () => {
       expect(checkAnswer(ask(q, [equator]), facts, [equator.interpretation])).toBeNull();
     }
     const empty = computeFacts([], null);
-    expect(checkAnswer(ask("x"), empty, [])).toBeNull();
+    expect(checkAnswer(ask("x", [], empty), empty, [])).toBeNull();
   });
 });
 
