@@ -12,4 +12,13 @@
 - [x] Re-seed confirmed term values, all labelled PROJECT ASSUMPTION
 - [x] Dashboard: interpretation lines, path badge, validation status, provenance, mode + QC summary (missing = unknown), real/synthetic on markers + provenance, DB metric cards, empty/error states
 - [x] Run rule-based fallback end to end via /api/ask (Settings → Rule-Based Only) and show its badge
-- [ ] Answer readability brief (uploaded) — waiting on user confirmation
+- [x] Answer readability: rule-based wording + AI answer rules + tests
+- [ ] Answer readability: answer card (plain answer prominent, technical details collapsed) — folded into brief 2 §3
+- [ ] Show 5 before/after answer examples with source rows
+- [ ] Brief 2 §1 Graphs: profile plots (inverted pressure), T-S, time series per float, QC 1/2, N points, empty states
+- [ ] Brief 2 §2 Counts/row cap: aggregates over full set, DISTINCT counts, capped-listing note, shared Dashboard/Analytics counts
+- [ ] Brief 2 §3 Chat answer UI: strip badges, "Exploring ARGO observations...", collapsed Supporting Evidence + nested Technical details
+- [ ] Brief 2 §4 Map: cluster zoom, one marker per float (latest), float details panel → cycles → profiles → graphs
+- [ ] Brief 2 §5 Analytics/pages: 4 cards, 3 charts, simplify history/saved/about/settings, hide synthetic legend when none
+- [ ] Brief 2 §6 Terms: undefined vague terms ask for a range (no SQL), unsupported message
+- [ ] Brief 2 §7 Final reply under 150 words, UNVERIFIED items
