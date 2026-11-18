@@ -15,7 +15,7 @@
 - [x] Answer readability: rule-based wording + AI answer rules + tests
 - [ ] Answer readability: answer card (plain answer prominent, technical details collapsed) — folded into brief 2 §3
 - [x] Show 5 before/after answer examples with source rows
-- [ ] Brief 2 §1 Graphs: profile plots (inverted pressure), T-S, time series per float, QC 1/2, N points, empty states
+- [x] Brief 2 §1 Graphs: profile plots (inverted pressure), T-S, time series per float, QC 1/2, N points, empty states
 - [ ] Brief 2 §2 Counts/row cap: aggregates over full set, DISTINCT counts, capped-listing note, shared Dashboard/Analytics counts
 - [ ] Brief 2 §3 Chat answer UI: strip badges, "Exploring ARGO observations...", collapsed Supporting Evidence + nested Technical details
 - [ ] Brief 2 §4 Map: cluster zoom, one marker per float (latest), float details panel → cycles → profiles → graphs

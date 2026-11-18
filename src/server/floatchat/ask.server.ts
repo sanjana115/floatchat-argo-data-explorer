@@ -33,7 +33,7 @@ async function execSelect(sql: string, maxRows: number): Promise<ExecResult> {
   return { ok: true, rows: (data as Row[]) ?? [], ms: Date.now() - t };
 }
 
-function recommendChart(question: string, rows: Row[]): "temp_depth" | "sal_depth" | "ts_diagram" | "time_series" | "none" {
+function recommendChart(question: string, rows: Row[]): "temp_depth" | "sal_depth" | "ts_diagram" | "none" {
   const q = question.toLowerCase();
   const has = (k: string) => rows[0] !== undefined && k in rows[0];
   if (!has("pressure") && !(has("temperature") && has("salinity"))) return "none";

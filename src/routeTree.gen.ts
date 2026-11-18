@@ -16,6 +16,7 @@ import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiTermsRouteImport } from './routes/api/terms'
 import { Route as ApiMapProfilesRouteImport } from './routes/api/map.profiles'
 import { Route as ApiProfileIdRouteImport } from './routes/api/profile.$id'
+import { Route as ApiFloatIdSeriesRouteImport } from './routes/api/float.$id.series'
 import { Route as ApiFloatIdTrackRouteImport } from './routes/api/float.$id.track'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const ApiProfileIdRoute = ApiProfileIdRouteImport.update({
   path: '/api/profile/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFloatIdSeriesRoute = ApiFloatIdSeriesRouteImport.update({
+  id: '/api/float/$id/series',
+  path: '/api/float/$id/series',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFloatIdTrackRoute = ApiFloatIdTrackRouteImport.update({
   id: '/api/float/$id/track',
   path: '/api/float/$id/track',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/api/terms': typeof ApiTermsRoute
   '/api/map/profiles': typeof ApiMapProfilesRoute
   '/api/profile/$id': typeof ApiProfileIdRoute
+  '/api/float/$id/series': typeof ApiFloatIdSeriesRoute
   '/api/float/$id/track': typeof ApiFloatIdTrackRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/api/terms': typeof ApiTermsRoute
   '/api/map/profiles': typeof ApiMapProfilesRoute
   '/api/profile/$id': typeof ApiProfileIdRoute
+  '/api/float/$id/series': typeof ApiFloatIdSeriesRoute
   '/api/float/$id/track': typeof ApiFloatIdTrackRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/api/terms': typeof ApiTermsRoute
   '/api/map/profiles': typeof ApiMapProfilesRoute
   '/api/profile/$id': typeof ApiProfileIdRoute
+  '/api/float/$id/series': typeof ApiFloatIdSeriesRoute
   '/api/float/$id/track': typeof ApiFloatIdTrackRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/api/terms'
     | '/api/map/profiles'
     | '/api/profile/$id'
+    | '/api/float/$id/series'
     | '/api/float/$id/track'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/api/terms'
     | '/api/map/profiles'
     | '/api/profile/$id'
+    | '/api/float/$id/series'
     | '/api/float/$id/track'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/api/terms'
     | '/api/map/profiles'
     | '/api/profile/$id'
+    | '/api/float/$id/series'
     | '/api/float/$id/track'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   ApiTermsRoute: typeof ApiTermsRoute
   ApiMapProfilesRoute: typeof ApiMapProfilesRoute
   ApiProfileIdRoute: typeof ApiProfileIdRoute
+  ApiFloatIdSeriesRoute: typeof ApiFloatIdSeriesRoute
   ApiFloatIdTrackRoute: typeof ApiFloatIdTrackRoute
 }
 
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProfileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/float/$id/series': {
+      id: '/api/float/$id/series'
+      path: '/api/float/$id/series'
+      fullPath: '/api/float/$id/series'
+      preLoaderRoute: typeof ApiFloatIdSeriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/float/$id/track': {
       id: '/api/float/$id/track'
       path: '/api/float/$id/track'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTermsRoute: ApiTermsRoute,
   ApiMapProfilesRoute: ApiMapProfilesRoute,
   ApiProfileIdRoute: ApiProfileIdRoute,
+  ApiFloatIdSeriesRoute: ApiFloatIdSeriesRoute,
   ApiFloatIdTrackRoute: ApiFloatIdTrackRoute,
 }
 export const routeTree = rootRouteImport

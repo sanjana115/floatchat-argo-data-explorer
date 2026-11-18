@@ -22,6 +22,7 @@ import { ChatMessage } from '../../types/argo';
 import { EvidenceDrawer } from '../evidence/EvidenceDrawer';
 import { PathBadge, ValidationBadge, SourceBadge, ModeChip } from '../evidence/StatusChips';
 import { AlertTriangle, SearchX } from 'lucide-react';
+import { groupProfiles } from '@/lib/floatchat/chartData';
 
 interface AskFloatChatViewProps {
   messages: ChatMessage[];
@@ -428,14 +429,14 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                   )}
 
                   {/* Plotly Chart Launcher Button if rows exist */}
-                  {msg.rows && msg.rows.length > 0 && (
+                  {msg.rows && groupProfiles(msg.rows).length > 0 && (
                     <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                       <button
                         type="button"
                         onClick={() =>
                           onOpenChart(
                             msg.rows!,
-                            msg.recommendedChart || 'temp_depth',
+                            msg.recommendedChart && msg.recommendedChart !== 'none' ? msg.recommendedChart : 'temp_depth',
                             `Observation Profile (${msg.provenance?.profileCount ?? 0} profiles)`
                           )
                         }

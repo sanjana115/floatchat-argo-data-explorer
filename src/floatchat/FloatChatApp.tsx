@@ -4,7 +4,7 @@ import { Header } from './components/layout/Header';
 import { MetricCards } from './components/dashboard/MetricCards';
 import { OceanMap } from './components/map/OceanMap';
 import { AskFloatChatView } from './components/chat/AskFloatChatView';
-import { OceanChart } from './components/charts/OceanChart';
+import { OceanChart, type ChartType } from './components/charts/OceanChart';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { FloatExplorerView } from './components/floats/FloatExplorerView';
 import { SavedQueriesView } from './components/views/SavedQueriesView';
@@ -48,7 +48,7 @@ export default function FloatChatApp() {
   const [chartState, setChartState] = useState<{
     isOpen: boolean;
     dataRows: any[];
-    chartType: 'temp_depth' | 'sal_depth' | 'ts_diagram' | 'time_series';
+    chartType: ChartType;
     title: string;
   }>({
     isOpen: false,
@@ -137,7 +137,7 @@ export default function FloatChatApp() {
           isOpen: true,
           dataRows: rowsWithMeta,
           chartType: 'temp_depth',
-          title: `Float WMO ${data.profile.wmo_number} (Cycle #${data.profile.cycle_number})`,
+          title: `Float ${data.profile.wmo_number} · cycle ${data.profile.cycle_number}`,
         });
       }
     } catch (err) {

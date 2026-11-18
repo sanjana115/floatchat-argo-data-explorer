@@ -136,3 +136,34 @@ export async function getTerms() {
   if (error) throw new Error(error.message);
   return data ?? [];
 }
+
+/**
+ * Readings near one pressure for every profile of one float (for the time graphs). Returns raw readings
+ * within the window plus profile meta; the nearest valid reading per cycle is picked in chartData.ts.
+ */
+export async function getFloatSeries(floatId: string, pressure: number, tolerance: number) {
+  const sb = supabaseAdmin;
+  const { data: profs, error } = await sb
+    .from("map_profiles")
+    .select("profile_id, cycle_number, profile_time, data_mode, data_source")
+    .eq("float_id", floatId)
+    .order("profile_time", { ascending: true })
+    .limit(2000);
+  if (error) throw new Error(error.message);
+  const meta = new Map((profs ?? []).filter((p) => p.profile_id).map((p) => [p.profile_id as string, p]));
+  if (meta.size === 0) return { floatId, pressure, tolerance, profiles: 0, readings: [] };
+  const readings: Record<string, unknown>[] = [];
+  const ids = [...meta.keys()];
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error: mErr } = await sb
+      .from("measurements")
+      .select("profile_id, pressure, temperature, salinity, pres_qc, temp_qc, psal_qc")
+      .in("profile_id", ids.slice(i, i + 200))
+      .gte("pressure", pressure - tolerance)
+      .lte("pressure", pressure + tolerance)
+      .limit(10000);
+    if (mErr) throw new Error(mErr.message);
+    for (const m of data ?? []) readings.push({ ...meta.get(m.profile_id), ...m });
+  }
+  return { floatId, pressure, tolerance, profiles: meta.size, readings };
+}

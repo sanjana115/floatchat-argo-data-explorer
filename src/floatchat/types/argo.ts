@@ -157,7 +157,7 @@ export interface ChatMessage {
   resolvedTerms?: ResolvedTerm[];
   provenance?: ProvenanceInfo;
   rows?: any[];
-  recommendedChart?: 'temp_depth' | 'sal_depth' | 'ts_diagram' | 'time_series' | 'none';
+  recommendedChart?: 'temp_depth' | 'sal_depth' | 'ts_diagram' | 'temp_time' | 'sal_time' | 'none';
   executionPath?: 'LLM' | 'RULE_BASED_FALLBACK';
   fallbackReason?: string | null;
   model?: string | null;
