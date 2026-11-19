@@ -25,6 +25,21 @@ const Stat: React.FC<{ label: string; value: React.ReactNode }> = ({ label, valu
 );
 const fmt = (n: number | null | undefined) => (n === null || n === undefined ? 'not reported' : n.toLocaleString());
 
+/** Turns an interpretation line ("Surface: readings from ... (PROJECT ASSUMPTION)") into one plain sentence. */
+function plainInterpretation(line: string): { sentence: string; assumption: boolean } {
+  const assumption = line.includes('PROJECT ASSUMPTION');
+  let text = line.replace(/\s*\((PROJECT ASSUMPTION|Source:[^)]*)\)\s*$/, '').trim();
+  const m = /^([^:]{1,40}):\s*(.+)$/.exec(text);
+  if (m) {
+    const [, label, rest] = m;
+    text = label.toLowerCase() === 'quality'
+      ? rest.charAt(0).toUpperCase() + rest.slice(1)
+      : `"${label}" was read as ${rest.charAt(0).toLowerCase()}${rest.slice(1)}`;
+  }
+  if (!/[.!?]$/.test(text)) text += '.';
+  return { sentence: text, assumption };
+}
+
 export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ message, sql, provenance, rows, isOpen, onToggle, onHighlightFloat }) => {
   const [copied, setCopied] = useState(false);
   const [showRawTable, setShowRawTable] = useState(false);
@@ -83,11 +98,9 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ message, sql, pr
               </Card>
 
               <Card>
-                <SectionTitle>Data mode (distinct profiles)</SectionTitle>
-                <div className="space-y-1 text-[11px]">
-                  <Stat label="Real-time (R)" value={provenance.modeSummary.R} />
-                  <Stat label="Adjusted (A)" value={provenance.modeSummary.A} />
-                  <Stat label="Delayed-mode (D)" value={provenance.modeSummary.D} />
+                <SectionTitle>Data mode</SectionTitle>
+                <div className="text-[11px] text-slate-700">
+                  Real-time: {provenance.modeSummary.R} · Adjusted: {provenance.modeSummary.A} · Delayed-mode: {provenance.modeSummary.D} profiles
                 </div>
                 <div className="mt-2 pt-1.5 border-t border-slate-100 text-[11px] text-slate-600">
                   Data source:{' '}
@@ -100,14 +113,18 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({ message, sql, pr
               {interpretations.length > 0 && (
                 <Card className="sm:col-span-2">
                   <SectionTitle>How the question was read</SectionTitle>
-                  <ul className="space-y-1 text-[11px] text-slate-700">
-                    {interpretations.map((line, i) => (
-                      <li key={i}>
-                        {line.replace(' (PROJECT ASSUMPTION)', '')}
-                        {line.includes('PROJECT ASSUMPTION') && <span className="ml-1 text-[10px] font-semibold text-amber-700">Project assumption</span>}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-[11px] text-slate-700 leading-relaxed">
+                    {interpretations.map((line, i) => {
+                      const { sentence, assumption } = plainInterpretation(line);
+                      return (
+                        <span key={i}>
+                          {i > 0 && ' '}
+                          {sentence}
+                          {assumption && <span className="ml-1 text-[10px] text-amber-700">(project assumption)</span>}
+                        </span>
+                      );
+                    })}
+                  </p>
                 </Card>
               )}
 
@@ -218,9 +235,11 @@ export const TechnicalDetails: React.FC<{
   <div className="p-3 space-y-3 text-[11px]">
     {message && (
       <div className="font-mono text-slate-700 space-y-0.5">
+        <div><span className="font-semibold">Execution path:</span> {message.executionPath ?? 'not reached'}</div>
         <div><span className="font-semibold">Query written by:</span> {message.executionPath === 'LLM' ? `AI (${message.model ?? 'model unknown'})` : message.executionPath === 'RULE_BASED_FALLBACK' ? 'rule-based fallback' : 'not reached'}</div>
         {message.fallbackReason && <div><span className="font-semibold">Fallback reason:</span> {message.fallbackReason}</div>}
         {message.answerPath && <div><span className="font-semibold">Answer written by:</span> {message.answerPath === 'LLM' ? 'AI' : 'fixed template'}{message.answerNote ? ` — ${message.answerNote}` : ''}</div>}
+        <div><span className="font-semibold">Rows returned:</span> {(provenance?.rowCount ?? message.rows?.length ?? 0).toLocaleString()}</div>
         {message.validation && (
           <div>
             <span className="font-semibold">Validation:</span>{' '}

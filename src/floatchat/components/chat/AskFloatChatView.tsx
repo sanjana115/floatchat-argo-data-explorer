@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { ChatMessage } from '../../types/argo';
 import { EvidenceDrawer } from '../evidence/EvidenceDrawer';
-import { PathBadge, ValidationBadge, SourceBadge, ModeChip } from '../evidence/StatusChips';
 import { AlertTriangle, SearchX } from 'lucide-react';
 import { groupProfiles } from '@/lib/floatchat/chartData';
 
@@ -342,12 +341,6 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                         <AlertTriangle className="w-4 h-4" /> I couldn't answer this question.
                       </div>
                       <p className="text-xs text-rose-900/80">{msg.text}</p>
-                      {(msg.executionPath || msg.validation) && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          <PathBadge path={msg.executionPath} reason={msg.fallbackReason} />
-                          <ValidationBadge message={msg} />
-                        </div>
-                      )}
                       {msg.attempts && msg.attempts.length > 0 && (
                         <ul className="pt-1 space-y-0.5 text-[11px] font-mono text-rose-900/70">
                           {msg.attempts.map((a, i) => (
@@ -363,61 +356,9 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                     <p className="whitespace-pre-wrap">{msg.text}</p>
                   )}
 
-                  {/* Resolved Oceanographic Terms */}
-                  {((msg.resolvedTerms?.length ?? 0) > 0 || (msg.interpretations?.length ?? 0) > 0) && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                        How I read your question
-                      </span>
-                      {(msg.resolvedTerms ?? []).map((t, idx) => (
-                        <div key={idx} className="text-[11px] text-slate-600 leading-snug flex items-start gap-1.5">
-                          <span className="font-mono font-medium px-1.5 py-0.5 rounded bg-[#E1F5F0] text-[#0D5C52] border border-[#B2E4D8] shrink-0">
-                            {t.label}
-                          </span>
-                          <span>
-                            {t.interpretation}{' '}
-                            {t.isProjectAssumption ? (
-                              <span className="text-[10px] font-semibold text-amber-700 whitespace-nowrap">PROJECT ASSUMPTION</span>
-                            ) : (
-                              <span className="text-[10px] text-slate-400">Source: {t.source}</span>
-                            )}
-                          </span>
-                        </div>
-                      ))}
-                      {(msg.interpretations ?? []).slice(msg.resolvedTerms?.length ?? 0).map((line, idx) => (
-                        <div key={`extra-${idx}`} className="text-[11px] text-slate-600 leading-snug flex items-start gap-1.5">
-                          <span className="font-mono font-medium px-1.5 py-0.5 rounded bg-[#E1F5F0] text-[#0D5C52] border border-[#B2E4D8] shrink-0">
-                            quality
-                          </span>
-                          <span>
-                            {line.replace(' (PROJECT ASSUMPTION)', '')}{' '}
-                            {line.includes('PROJECT ASSUMPTION') && (
-                              <span className="text-[10px] font-semibold text-amber-700 whitespace-nowrap">PROJECT ASSUMPTION</span>
-                            )}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Evidence status strip: path, validation, data source, mode summary */}
-                  {msg.sender === 'assistant' && !msg.error && msg.provenance && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <PathBadge path={msg.executionPath} reason={msg.fallbackReason} />
-                        <ValidationBadge message={msg} />
-                        <SourceBadge real={msg.provenance.dataSourceSummary.real} synthetic={msg.provenance.dataSourceSummary.synthetic} />
-                        {msg.provenance.profileCount > 0 && <ModeChip {...msg.provenance.modeSummary} />}
-                        {msg.provenance.positionQc && msg.provenance.positionQc.unknown > 0 && (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
-                            position QC unknown · {msg.provenance.positionQc.unknown}
-                          </span>
-                        )}
-                      </div>
-                      {msg.executionPath === 'RULE_BASED_FALLBACK' && msg.fallbackReason && (
-                        <div className="text-[11px] text-amber-800">Fallback reason: {msg.fallbackReason}</div>
-                      )}
-                    </div>
+                  {/* Basic-mode note: only when the rule-based fallback answered */}
+                  {msg.sender === 'assistant' && !msg.error && msg.executionPath === 'RULE_BASED_FALLBACK' && (
+                    <p className="mt-2 text-[11px] text-slate-500">Answered in basic mode (AI service unavailable).</p>
                   )}
 
                   {/* Empty result */}
@@ -446,9 +387,6 @@ export const AskFloatChatView: React.FC<AskFloatChatViewProps> = ({
                         <span>View Scientific Plotly Chart</span>
                       </button>
 
-                      <span className="text-[11px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded">
-                        {msg.rows.length} rows returned
-                      </span>
                     </div>
                   )}
 

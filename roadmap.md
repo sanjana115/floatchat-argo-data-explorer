@@ -17,7 +17,8 @@
 - [x] Show 5 before/after answer examples with source rows
 - [x] Brief 2 §1 Graphs: profile plots (inverted pressure), T-S, time series per float, QC 1/2, N points, empty states
 - [ ] Brief 2 §2 Counts/row cap: aggregates over full set, DISTINCT counts, capped-listing note, shared Dashboard/Analytics counts
-- [ ] Brief 2 §3 Chat answer UI: strip badges, "Exploring ARGO observations...", collapsed Supporting Evidence + nested Technical details
+- [x] Brief 2 §3 Chat answer UI: strip badges, collapsed Supporting Evidence + nested Technical details
+- [ ] Brief 2 §3 loading text "Exploring ARGO observations..."
 - [ ] Brief 2 §4 Map: cluster zoom, one marker per float (latest), float details panel → cycles → profiles → graphs
 - [ ] Brief 2 §5 Analytics/pages: 4 cards, 3 charts, simplify history/saved/about/settings, hide synthetic legend when none
 - [ ] Brief 2 §6 Terms: undefined vague terms ask for a range (no SQL), unsupported message
