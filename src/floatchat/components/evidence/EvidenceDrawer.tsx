@@ -31,7 +31,8 @@ function plainInterpretation(line: string): { sentence: string; assumption: bool
   let text = line.replace(/\s*\((PROJECT ASSUMPTION|Source:[^)]*)\)\s*$/, '').trim();
   const m = /^([^:]{1,40}):\s*(.+)$/.exec(text);
   if (m) {
-    const [, label, rest] = m;
+    const label = m[1] ?? "";
+    const rest = m[2] ?? "";
     text = label.toLowerCase() === 'quality'
       ? rest.charAt(0).toUpperCase() + rest.slice(1)
       : `"${label}" was read as ${rest.charAt(0).toLowerCase()}${rest.slice(1)}`;
