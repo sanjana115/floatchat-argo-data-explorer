@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FloatchatRouteImport } from './routes/floatchat'
 import { Route as ApiAskRouteImport } from './routes/api/ask'
 import { Route as ApiImportProfileRouteImport } from './routes/api/import-profile'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
@@ -22,6 +23,11 @@ import { Route as ApiFloatIdTrackRouteImport } from './routes/api/float.$id.trac
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FloatchatRoute = FloatchatRouteImport.update({
+  id: '/floatchat',
+  path: '/floatchat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAskRoute = ApiAskRouteImport.update({
@@ -67,6 +73,7 @@ const ApiFloatIdTrackRoute = ApiFloatIdTrackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/floatchat': typeof FloatchatRoute
   '/api/ask': typeof ApiAskRoute
   '/api/import-profile': typeof ApiImportProfileRoute
   '/api/stats': typeof ApiStatsRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/floatchat': typeof FloatchatRoute
   '/api/ask': typeof ApiAskRoute
   '/api/import-profile': typeof ApiImportProfileRoute
   '/api/stats': typeof ApiStatsRoute
@@ -90,6 +98,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/floatchat': typeof FloatchatRoute
   '/api/ask': typeof ApiAskRoute
   '/api/import-profile': typeof ApiImportProfileRoute
   '/api/stats': typeof ApiStatsRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/floatchat'
     | '/api/ask'
     | '/api/import-profile'
     | '/api/stats'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/floatchat'
     | '/api/ask'
     | '/api/import-profile'
     | '/api/stats'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/floatchat'
     | '/api/ask'
     | '/api/import-profile'
     | '/api/stats'
@@ -137,6 +149,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FloatchatRoute: typeof FloatchatRoute
   ApiAskRoute: typeof ApiAskRoute
   ApiImportProfileRoute: typeof ApiImportProfileRoute
   ApiStatsRoute: typeof ApiStatsRoute
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/floatchat': {
+      id: '/floatchat'
+      path: '/floatchat'
+      fullPath: '/floatchat'
+      preLoaderRoute: typeof FloatchatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ask': {
@@ -217,6 +237,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FloatchatRoute: FloatchatRoute,
   ApiAskRoute: ApiAskRoute,
   ApiImportProfileRoute: ApiImportProfileRoute,
   ApiStatsRoute: ApiStatsRoute,

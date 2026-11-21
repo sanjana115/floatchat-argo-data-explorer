@@ -40,5 +40,5 @@ use the editor.
 - QC flags are summarised by `src/lib/floatchat/qc.ts`; a missing flag or flag 0 is always `unknown`, never good.
 - `query_log` is written via `log_id`, `asked_at`, `generated_sql`, `validator_ok`, `attempt_count`, `execution_ms`, `error_message` (id/created_at/final_sql/error are deprecated).
 - Argo data is loaded with `scripts/ingest_argo.py` from NetCDF files; R mode uses raw values, A/D mode uses *_ADJUSTED values and flags.
-- The original UI lives in `src/floatchat/` and is loaded client-only from `/` because Leaflet/Plotly need `window`.
+- The public homepage lives at `/`; preserve FloatChat at `/floatchat` and load it client-only because Leaflet and Plotly need `window`.
 - Argo tables (floats, cycles, profiles, measurements), their summaries and map_profiles are not readable by anon/authenticated; browsers reach them only through the fixed server endpoints in `data.server.ts` (service client) or `floatchat_exec_select` — never re-add public read policies.

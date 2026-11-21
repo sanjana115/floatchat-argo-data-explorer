@@ -23,3 +23,4 @@
 - [ ] Brief 2 §5 Analytics/pages: 4 cards, 3 charts, simplify history/saved/about/settings, hide synthetic legend when none
 - [ ] Brief 2 §6 Terms: undefined vague terms ask for a range (no SQL), unsupported message
 - [ ] Brief 2 §7 Final reply under 150 words, UNVERIFIED items
+- [ ] Public homepage: oceanography introduction, saved icon, and link to FloatChat at `/floatchat`; publish
